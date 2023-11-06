@@ -1,0 +1,31 @@
+select * from (select ROW_NUMBER() Over (Order by MANDAL_NAME) As sNo, login.MANDAL_ID , login.MANDAL_NAME , 
+login.dist_id, login.dist_name,
+login.secretariat_id, login.secretariat_name, to_date(login.FIRST_LOG_IN_TIME,'DD-MON-YY'), count(*) cnt
+from AAROGYASRI_APK_LAST_LOGIN login
+Where 
+ to_date(login.FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY')  and 
+CLUSTER_ID is not null 
+GROUP BY login.MANDAL_ID,login.MANDAL_NAME,login.dist_id, login.dist_name,login.secretariat_id, login.secretariat_name,to_date(login.FIRST_LOG_IN_TIME,'DD-MON-YY')
+ORDER BY MANDAL_NAME
+) logindtls
+left join 
+(select * from (SELECT LGD_CODE, loc_id, loc_name, rural_urban FROM asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN"
+WHERE loc_hdr_id = 'LH7' and ACTIVE_YN='Y' AND   loc_parnt_id IN ( SELECT loc_id
+FROM  asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" WHERE loc_hdr_id = 'LH6' AND   loc_state_val = '6' and ACTIVE_YN='Y')) )manloclist 
+on  logindtls.mandal_id = manloclist.lgd_code
+UNION
+select * from (select ROW_NUMBER() Over (Order by MANDAL_NAME) As sNo, lgn.MANDAL_ID , lgn.MANDAL_NAME , 
+lgn.dist_id, lgn.dist_name,
+lgn.secretariat_id, lgn.secretariat_name, to_date(lgn.FIRST_LOG_IN_TIME,'DD-MON-YY'), count(*) cnt
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" lgn
+Where 
+ to_date(lgn.FIRST_LOG_IN_TIME,'DD-MON-YY') = '01-NOV-23' and  to_date(lgn.FIRST_LOG_IN_TIME,'DD-MON-YY') <= '06-NOV-23' and 
+CLUSTER_ID is not null 
+GROUP BY lgn.MANDAL_ID,lgn.MANDAL_NAME,lgn.dist_id, lgn.dist_name,lgn.secretariat_id, lgn.secretariat_name,to_date(lgn.FIRST_LOG_IN_TIME,'DD-MON-YY')
+ORDER BY MANDAL_NAME
+) logindtls
+left join 
+(select * from (SELECT LGD_CODE, loc_id, loc_name, rural_urban FROM asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN"
+WHERE loc_hdr_id = 'LH7' and ACTIVE_YN='Y' AND   loc_parnt_id IN ( SELECT loc_id
+FROM  asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" WHERE loc_hdr_id = 'LH6' AND   loc_state_val = '6' and ACTIVE_YN='Y')) )manloclist 
+on  logindtls.mandal_id = manloclist.lgd_code
