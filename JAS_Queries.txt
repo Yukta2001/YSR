@@ -1,29 +1,100 @@
-@Query(value = "select ROW_NUMBER() Over (Order by dist_name) As sNo,  dist_id valueId, dist_name valueName, count(*) counts from AAROGYASRI_APK_LAST_LOGIN Where FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null GROUP BY DIST_ID,DIST_NAME ORDER BY dist_name", nativeQuery = true)
-	List<CodeValueResultDto> getAllDistrictList(String startDate, String endDate);
+/* QUERY 1*/
+select  dist_id valueId, dist_name valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" Where FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23'  
+and CLUSTER_ID is not null GROUP BY DIST_ID,DIST_NAME ORDER BY dist_name;
 
-	@Query(value = "select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN  Where FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null ", nativeQuery = true)
-	Integer getAllDistrictCount(String startDate, String endDate);
+/*TODAY*/
+select  dist_id valueId, dist_name valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN Where to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') 
+and CLUSTER_ID is not null GROUP BY DIST_ID,DIST_NAME ORDER BY dist_name;
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') 
+/* QUERY 2*/
+select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN"  
+Where FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' and CLUSTER_ID is not null;
 
-	@Query(value = "select ROW_NUMBER() Over (Order by MANDAL_NAME) As sNo,MANDAL_ID valueId, MANDAL_NAME valueName, count(*) counts from AAROGYASRI_APK_LAST_LOGIN where DIST_ID = :distId and FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  GROUP BY MANDAL_ID,MANDAL_NAME ORDER BY MANDAL_NAME", nativeQuery = true)
-	List<CodeValueResultDto> getMandalListByDistId(String distId, String startDate, String endDate);
+/*TODAY*/
+select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN
+Where to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') and CLUSTER_ID is not null;
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+/* QUERY 3*/
+select MANDAL_ID valueId, MANDAL_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" where DIST_ID = '519' 
+and FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23'
+and CLUSTER_ID is not null  GROUP BY MANDAL_ID,MANDAL_NAME ORDER BY MANDAL_NAME;
 
-	@Query(value = "select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN where DIST_ID = :distId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null ", nativeQuery = true)
-	Integer getMandalCount(String distId, String startDate, String endDate);
+/*TODAY*/
+select MANDAL_ID valueId, MANDAL_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN where DIST_ID = '519' 
+and to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') 
+and CLUSTER_ID is not null  GROUP BY MANDAL_ID,MANDAL_NAME ORDER BY MANDAL_NAME;
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/* QUERY 4*/
+select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" where DIST_ID = '519' 
+and  FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' and CLUSTER_ID is not null;
 
-	@Query(value = "select ROW_NUMBER() Over (Order by SECRETARIAT_NAME) As sNo,SECRETARIAT_ID valueId, SECRETARIAT_NAME valueName, count(*) counts from AAROGYASRI_APK_LAST_LOGIN where MANDAL_ID =:mandalId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  GROUP BY SECRETARIAT_ID,SECRETARIAT_NAME ORDER BY SECRETARIAT_NAME ", nativeQuery = true)
-	List<CodeValueResultDto> getSecretariatList(String mandalId, String startDate, String endDate);
+/*TODAY*/
+select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN where DIST_ID = '519' 
+and  to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') and CLUSTER_ID is not null;
+-----------------------------------------------------------------------------------------------------------------------------------------------
+/* QUERY 5*/
+select SECRETARIAT_ID valueId, SECRETARIAT_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" where MANDAL_ID ='4779' 
+and  FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' and CLUSTER_ID is not null 
+GROUP BY SECRETARIAT_ID,SECRETARIAT_NAME 
+ORDER BY SECRETARIAT_NAME;
 
-	@Query(value = "select count(*) counts from AAROGYASRI_APK_LAST_LOGIN where MANDAL_ID =:mandalId and FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null", nativeQuery = true)
-	Integer getSecretariatCount(String mandalId, String startDate, String endDate);
+/*TODAY*/
+select SECRETARIAT_ID valueId, SECRETARIAT_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN where MANDAL_ID ='4779' 
+and  to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') and CLUSTER_ID is not null 
+GROUP BY SECRETARIAT_ID,SECRETARIAT_NAME 
+ORDER BY SECRETARIAT_NAME;
+----------------------------------------------------------------------------------------------------------------------------------------------------
 
-	@Query(value = "select ROW_NUMBER() Over (Order by MANDAL_NAME) As sNo, MANDAL_ID  valueId, MANDAL_NAME valueName, rural_urban ruralUrban, count(*) counts"
-			+ " from AAROGYASRI_APK_LAST_LOGIN, asrim_locations Where FIRST_LOG_IN_TIME >=:startDate and FIRST_LOG_IN_TIME < :endDate and "
-			+ "CLUSTER_ID is not null and dist_id =:distId and MANDAL_ID = LGD_CODE and loc_hdr_id = 'LH7' and ACTIVE_YN='Y'"
-			+ " GROUP BY MANDAL_ID,MANDAL_NAME,rural_urban ORDER BY MANDAL_NAME", nativeQuery = true)
-	List<CodeValueResultDto> getMandalRUByDistId(String distId, String startDate, String endDate);
+/* QUERY 6*/
+select count(*) counts from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" where MANDAL_ID ='4779' 
+and FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' 
+and CLUSTER_ID is not null;
 
-	@Query(value = "select ROW_NUMBER() Over (Order by CLUSTER_ID) As sNo,CLUSTER_ID valueId,count(*) counts from AAROGYASRI_APK_LAST_LOGIN where SECRETARIAT_ID =:secId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  GROUP BY CLUSTER_ID ORDER BY CLUSTER_ID ", nativeQuery = true)
-	List<CodeValueResultDto> getClusterbySecId(String secId, String startDate, String endDate);
+/*TODAY*/
+select count(*) counts from AAROGYASRI_APK_LAST_LOGIN where MANDAL_ID ='4779' 
+and to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') 
+and CLUSTER_ID is not null;
+-------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	@Query(value = "select count(*) counts from AAROGYASRI_APK_LAST_LOGIN where SECRETARIAT_ID =:secId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  ", nativeQuery = true)
-	Integer getClusterCount(String secId, String startDate, String endDate);
+/* QUERY 7*/
+select  MANDAL_ID  valueId, MANDAL_NAME valueName, rural_urban ruralUrban, count(*) counts
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN", asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" 
+Where FIRST_LOG_IN_TIME >='01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' and 
+CLUSTER_ID is not null and dist_id ='519' and MANDAL_ID = LGD_CODE and loc_hdr_id = 'LH7' and ACTIVE_YN='Y'
+GROUP BY MANDAL_ID,MANDAL_NAME,rural_urban ORDER BY MANDAL_NAME;
+
+/*TODAY*/
+select  MANDAL_ID  valueId, MANDAL_NAME valueName, rural_urban ruralUrban, count(*) counts
+from AAROGYASRI_APK_LAST_LOGIN, asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" 
+Where to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') and 
+CLUSTER_ID is not null and dist_id ='519' and MANDAL_ID = LGD_CODE and loc_hdr_id = 'LH7' and ACTIVE_YN='Y'
+GROUP BY MANDAL_ID,MANDAL_NAME,rural_urban ORDER BY MANDAL_NAME;
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+/* QUERY 8*/
+select CLUSTER_ID valueId,count(*) counts from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" 
+where SECRETARIAT_ID ='10190038' and  FIRST_LOG_IN_TIME >= '01-NOV-23' 
+and FIRST_LOG_IN_TIME < '06-NOV-23' and CLUSTER_ID is not null  
+GROUP BY CLUSTER_ID ORDER BY CLUSTER_ID;
+
+/*TODAY*/
+select CLUSTER_ID valueId,count(*) counts from AAROGYASRI_APK_LAST_LOGIN
+where SECRETARIAT_ID ='10190038' and  to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY')
+and CLUSTER_ID is not null  
+GROUP BY CLUSTER_ID ORDER BY CLUSTER_ID;
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/* QUERY 9*/
+select count(*) counts from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" 
+where SECRETARIAT_ID ='10190038' 
+and  FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' and CLUSTER_ID is not null;
+
+/*TODAY*/
+select count(*) counts from AAROGYASRI_APK_LAST_LOGIN
+where SECRETARIAT_ID ='10190038' 
+and  to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') and CLUSTER_ID is not null;
