@@ -1,0 +1,29 @@
+@Query(value = "select ROW_NUMBER() Over (Order by dist_name) As sNo,  dist_id valueId, dist_name valueName, count(*) counts from AAROGYASRI_APK_LAST_LOGIN Where FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null GROUP BY DIST_ID,DIST_NAME ORDER BY dist_name", nativeQuery = true)
+	List<CodeValueResultDto> getAllDistrictList(String startDate, String endDate);
+
+	@Query(value = "select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN  Where FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null ", nativeQuery = true)
+	Integer getAllDistrictCount(String startDate, String endDate);
+
+	@Query(value = "select ROW_NUMBER() Over (Order by MANDAL_NAME) As sNo,MANDAL_ID valueId, MANDAL_NAME valueName, count(*) counts from AAROGYASRI_APK_LAST_LOGIN where DIST_ID = :distId and FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  GROUP BY MANDAL_ID,MANDAL_NAME ORDER BY MANDAL_NAME", nativeQuery = true)
+	List<CodeValueResultDto> getMandalListByDistId(String distId, String startDate, String endDate);
+
+	@Query(value = "select  count(*) counts from AAROGYASRI_APK_LAST_LOGIN where DIST_ID = :distId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null ", nativeQuery = true)
+	Integer getMandalCount(String distId, String startDate, String endDate);
+
+	@Query(value = "select ROW_NUMBER() Over (Order by SECRETARIAT_NAME) As sNo,SECRETARIAT_ID valueId, SECRETARIAT_NAME valueName, count(*) counts from AAROGYASRI_APK_LAST_LOGIN where MANDAL_ID =:mandalId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  GROUP BY SECRETARIAT_ID,SECRETARIAT_NAME ORDER BY SECRETARIAT_NAME ", nativeQuery = true)
+	List<CodeValueResultDto> getSecretariatList(String mandalId, String startDate, String endDate);
+
+	@Query(value = "select count(*) counts from AAROGYASRI_APK_LAST_LOGIN where MANDAL_ID =:mandalId and FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null", nativeQuery = true)
+	Integer getSecretariatCount(String mandalId, String startDate, String endDate);
+
+	@Query(value = "select ROW_NUMBER() Over (Order by MANDAL_NAME) As sNo, MANDAL_ID  valueId, MANDAL_NAME valueName, rural_urban ruralUrban, count(*) counts"
+			+ " from AAROGYASRI_APK_LAST_LOGIN, asrim_locations Where FIRST_LOG_IN_TIME >=:startDate and FIRST_LOG_IN_TIME < :endDate and "
+			+ "CLUSTER_ID is not null and dist_id =:distId and MANDAL_ID = LGD_CODE and loc_hdr_id = 'LH7' and ACTIVE_YN='Y'"
+			+ " GROUP BY MANDAL_ID,MANDAL_NAME,rural_urban ORDER BY MANDAL_NAME", nativeQuery = true)
+	List<CodeValueResultDto> getMandalRUByDistId(String distId, String startDate, String endDate);
+
+	@Query(value = "select ROW_NUMBER() Over (Order by CLUSTER_ID) As sNo,CLUSTER_ID valueId,count(*) counts from AAROGYASRI_APK_LAST_LOGIN where SECRETARIAT_ID =:secId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  GROUP BY CLUSTER_ID ORDER BY CLUSTER_ID ", nativeQuery = true)
+	List<CodeValueResultDto> getClusterbySecId(String secId, String startDate, String endDate);
+
+	@Query(value = "select count(*) counts from AAROGYASRI_APK_LAST_LOGIN where SECRETARIAT_ID =:secId and  FIRST_LOG_IN_TIME >= :startDate and FIRST_LOG_IN_TIME < :endDate and CLUSTER_ID is not null  ", nativeQuery = true)
+	Integer getClusterCount(String secId, String startDate, String endDate);
