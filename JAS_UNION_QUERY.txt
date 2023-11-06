@@ -1,0 +1,66 @@
+/* QUERY 1*/
+SELECT * FROM (select  a1.dist_id valueId, a1.dist_name valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" a1 Where FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23'  
+and CLUSTER_ID is not null GROUP BY a1.DIST_ID,a1.DIST_NAME
+UNION ALL
+select  a2.dist_id valueId, a2.dist_name valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN a2 Where to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') 
+and CLUSTER_ID is not null GROUP BY a2.DIST_ID,a2.DIST_NAME)
+ORDER BY valueName;
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/* QUERY 3*/
+SELECT * FROM (select MANDAL_ID valueId, MANDAL_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" where DIST_ID = '519' 
+and FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23'
+and CLUSTER_ID is not null  GROUP BY MANDAL_ID,MANDAL_NAME
+UNION ALL
+select MANDAL_ID valueId, MANDAL_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN where DIST_ID = '519' 
+and to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') 
+and CLUSTER_ID is not null  GROUP BY MANDAL_ID,MANDAL_NAME)
+ORDER BY valueName;
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*QUERY 5*/
+
+SELECT * FROM(select SECRETARIAT_ID valueId, SECRETARIAT_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" where MANDAL_ID ='4779' 
+and  FIRST_LOG_IN_TIME >= '01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' and CLUSTER_ID is not null 
+GROUP BY SECRETARIAT_ID,SECRETARIAT_NAME
+UNION ALL
+select SECRETARIAT_ID valueId, SECRETARIAT_NAME valueName, count(*) counts 
+from AAROGYASRI_APK_LAST_LOGIN where MANDAL_ID ='4779' 
+and  to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') and CLUSTER_ID is not null 
+GROUP BY SECRETARIAT_ID,SECRETARIAT_NAME)
+ORDER BY valueName;
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+/* QUERY 7*/
+
+SELECT * FROM (select  MANDAL_ID  valueId, MANDAL_NAME valueName, rural_urban ruralUrban, count(*) counts
+from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN", asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" 
+Where FIRST_LOG_IN_TIME >='01-NOV-23' and FIRST_LOG_IN_TIME < '06-NOV-23' and 
+CLUSTER_ID is not null and dist_id ='519' and MANDAL_ID = LGD_CODE and loc_hdr_id = 'LH7' and ACTIVE_YN='Y'
+GROUP BY MANDAL_ID,MANDAL_NAME,rural_urban
+UNION ALL
+select  MANDAL_ID  valueId, MANDAL_NAME valueName, rural_urban ruralUrban, count(*) counts
+from AAROGYASRI_APK_LAST_LOGIN, asrim_locations@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" 
+Where to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY') and 
+CLUSTER_ID is not null and dist_id ='519' and MANDAL_ID = LGD_CODE and loc_hdr_id = 'LH7' and ACTIVE_YN='Y'
+GROUP BY MANDAL_ID,MANDAL_NAME,rural_urban)
+ORDER BY valueName;
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+/* QUERY 8*/
+SELECT * FROM (select CLUSTER_ID valueId,count(*) counts from AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" 
+where SECRETARIAT_ID ='10190038' and  FIRST_LOG_IN_TIME >= '01-NOV-23' 
+and FIRST_LOG_IN_TIME < '06-NOV-23' and CLUSTER_ID is not null  
+GROUP BY CLUSTER_ID
+UNION ALL
+select CLUSTER_ID valueId,count(*) counts from AAROGYASRI_APK_LAST_LOGIN
+where SECRETARIAT_ID ='10190038' and  to_date(FIRST_LOG_IN_TIME,'DD-MON-YY') = to_date(SYSDATE,'DD-MON-YY')
+and CLUSTER_ID is not null  
+GROUP BY CLUSTER_ID)
+ORDER BY valueId;
