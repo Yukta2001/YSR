@@ -1,0 +1,10 @@
+MERGE INTO AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" prod
+USING AAROGYASRI_APK_LAST_LOGIN mbk
+ON (prod.uhid_value = mbk.uhid_value)
+    WHEN MATCHED THEN
+        UPDATE SET prod.LOG_IN_TIME = mbk.LOG_IN_TIME
+    WHEN NOT MATCHED THEN
+        Insert into AAROGYASRI_APK_LAST_LOGIN@"MOBILE_APK.YSRAAROGYASRI.AP.GOV.IN" (UHID_VALUE,HOUSEHOLDCARDNO,LOG_IN_TIME,LOG_OUT_TIME,FIRST_LOG_IN_TIME,RESIDENT_ID,CLUSTER_ID,UID_NO,DIST_ID,DIST_NAME,MANDAL_ID,MANDAL_NAME,SECRETARIAT_ID,SECRETARIAT_NAME,UID_HASH_VALUE,ERR_MSG) 
+        SELECT uhid_value,householdcardno,log_in_time,log_out_time,first_log_in_time,resident_id,cluster_id,uid_no,dist_id,dist_name,mandal_id, mandal_name,secretariat_id,secretariat_name,uid_hash_value,err_msg
+        FROM aarogyasri_apk_last_login
+        WHERE log_in_time < (SELECT TO_CHAR(SYSDATE , 'DD-MON-YYYY') FROM DUAL) 
