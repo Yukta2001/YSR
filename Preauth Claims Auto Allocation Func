@@ -1,0 +1,88 @@
+CREATE OR REPLACE FUNCTION asri.preauth_claims_allocation_func_test(
+	user_id integer)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+
+	DECLARE 
+	 user_no INTEGER;
+	 v_case_no CHARACTER VARYING;
+	 reassign_case CHARACTER VARYING;
+	 case_count INTEGER;
+	 c_count INTEGER;
+	 sla_period INTEGER;
+
+	BEGIN
+		user_no := user_id; --(user id = input parameter)
+		c_count := 1; --(maximum case a user can take in day)
+		sla_period := 8; --(sla period for a user)
+		
+SELECT claim_id INTO v_case_no FROM asri.asri_claims
+WHERE assigned_to = user_no;		
+	
+If v_case_no IS NOT NULL THEN
+	RETURN '{User is already assigned to case:'||v_case_no||'}';
+ELSE
+WITH FINAL_ACTION AS(
+		SELECT claim_id, MAX(upd_on) as last_action_dt
+		FROM asri.asri_claims_audit
+		WHERE  upd_on::DATE = now()::date
+		GROUP BY claim_id
+		)
+		SELECT COUNT(ac.claim_id) into case_count
+		FROM asri.asri_claims_audit ac
+		JOIN FINAL_ACTION fa ON ac.claim_id = fa.claim_id
+		AND ac.upd_on = fa.last_action_dt
+		WHERE ac.assigned_to = user_no;--(count of the cases a particular user took action on)
+
+IF case_count >= c_count	
+		THEN
+		RETURN '{No more case can be assign to this user:'||null||'}';
+ELSE
+	WITH IQ AS
+	(SELECT claim_id,assigned_to,ac.crt_on,ac.upd_on FROM asri.asri_claim ac
+	JOIN asri.asri_step_role_mapping asrm ON asrm.step_role_id = ac.claims_status
+	JOIN ysr.ysr_user_role_mapping yurm ON yurm.role_id = asrm.role_id
+	WHERE yurm.user_id = user_no)
+
+	SELECT IQ.claim_id INTO reassign_case FROM IQ
+	where assigned_to is not null
+	and EXTRACT(EPOCH FROM(current_timestamp - upd_on))/3600> sla_period
+	order by EXTRACT(EPOCH FROM(current_timestamp - upd_on))/3600 desc
+	LIMIT 1; --(case that to be reassigned once the user cross the time period)
+IF reassign_case IS NOT NULL THEN
+	UPDATE asri.asri_claims
+	SET assigned_to = user_no,
+		upd_on = current_timestamp
+	where claim_id = reassign_case;
+	return '{Re-assigned case to new user:'||reassign_case||'}';
+ELSE	
+
+	WITH IQ AS
+	(SELECT claim_id,assigned_to,ac.crt_on,ac.upd_on FROM asri.asri_claims ac
+	JOIN asri.asri_step_role_mapping asrm ON asrm.step_role_id = ac.claims_status
+	JOIN ysr.ysr_user_role_mapping yurm ON yurm.role_id = asrm.role_id
+	WHERE yurm.user_id = user_no)----(inbox Query)
+	
+	SELECT claim_id INTO v_case_no FROM IQ
+	where assigned_to is NULL
+	order by crt_on
+	LIMIT 1;
+	
+		IF v_case_no is null then
+			RETURN '{No Case is there to assign the particular user:'||null||'}';
+		ELSE
+			UPDATE asri.asri_claims
+			SET assigned_to = user_no,
+			upd_on = current_timestamp
+			where claim_id = v_case_no;
+			RETURN '{Assigned Case ID is:'||v_case_no||'}';
+		END IF;
+END IF;
+END IF;
+END IF;
+END;
+	
+$BODY$;
