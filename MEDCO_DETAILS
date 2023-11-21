@@ -1,0 +1,20 @@
+SELECT 
+ROW_NUMBER() Over (Order by anu.USER_ID) As SNo,
+au.REGNO as APMC_NUMBER,
+(au.First_name ||' '||au.LAST_NAME) as MEDCO_NAME,
+au.LOGIN_NAME as MEDCO_LOGIN_ID,
+anu.HOSP_ID HOSPITAL_ID,
+ah.HOSP_NAME HOSPITAL_NAME,
+al.loc_name HOSPITAL_DISTRICT,
+CASE
+when anu.eff_end_dt is not null
+THEN 'N'
+else 'Y'
+END as MEDCO_STATUS,
+anu.eff_start_dt MEDCO_LOGIN_CREATION_DATE,
+anu.eff_end_dt MEDCO_LOGIN_DEACTIVATION_DATE
+FROM asrim_nwh_users anu
+LEFT JOIN ASRIM_USERS au ON au.user_id = anu.user_id
+LEFT JOIN asrim_hospitals ah ON ah.hosp_id=anu.hosp_id
+LEFT JOIN asrim_locations al ON al.loc_id=ah.dist_id
+ORDER BY APMC_NUMBER;
