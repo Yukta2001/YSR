@@ -1,0 +1,52 @@
+ASRI UAT
+==========
+USERNAME: ARGSRI_FINAL
+PASSWORD: ysrStg#423
+HOSTNAME: 10.10.223.179
+PORT: 1521
+SID: sysrasdb
+
+
+ASRI Pre Prod
+==============
+USERNAME: ARGSRI_FINAL
+PASSWORD: preYsr#432
+HOSTNAME: 10.9.39.211
+PORT: 1531
+SID: qysrasdb
+
+
+ASRI Reporting DB
+==================
+USERNAME: ARGSRI_FINAL
+PASSWORD: ntrvs#123
+HOSTNAME: 10.9.39.217
+PORT: 1521
+SID: pysrrtdb
+
+
+ASRI Prod
+==========
+USERNAME: ARGSRI_FINAL
+PASSWORD: ntrvs#123
+HOSTNAME: 10.9.39.218
+PORT: 1521
+SID: pysrasdb
+
+
+Aarogya Raksha Pre Prod
+========================
+USERNAME: AAROGYA_FINAL
+PASSWORD: preAarogya#432
+HOSTNAME: 10.9.39.211
+PORT: 1531
+SID: qysrasdb
+
+
+Aarogya Raksha Prod
+====================
+USERNAME: AAROGYA_FINAL
+PASSWORD: aarogya#123
+HOSTNAME: 10.9.39.218
+PORT: 1521
+SID: pysrasdb
