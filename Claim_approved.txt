@@ -1,0 +1,47 @@
+SELECT DISTINCT
+    case_id,
+    patient_id,
+    claim_no,
+    STATUS_CODE,
+    claim_status,
+    claim_initiated_amount,
+    claim_initiated_date,
+    CPD_Approved_Amount,
+    NVL(CPD_Approved_Amount,0) - NVL(Claim_Head_Approved_Amount,0) as Claim_Head_Deducted_Amount,
+    Claim_Head_Approved_Amount,
+    CEO_Approved_amount,
+    CEO_Approved_Date
+from
+(
+SELECT DISTINCT
+    ac.case_ID,
+    ap.patient_id,
+    ac.CLAIM_NO,
+    acm.cmb_dtl_id STATUS_CODE,
+    acm.cmb_dtl_name as claim_status,
+    CS_CL_AMOUNT AS Claim_Initiated_amount,
+    ac.actual_clm_sub_dt AS claim_initiated_date,
+    acc.CASE_CLAIM_DOC_AMT CPD_Approved_Amount,
+   -- (SELECT acc.CASE_CLAIM_DOC_AMT FROM ASRIT_AUDIT A WHERE A.ACT_ID IN ('CD119') AND A.CASE_ID=acc.CASE_ID) CPD_Approved_Amount,
+     CASE_CEO_APRV_AMT AS CEO_Approved_amount,
+     ac.payment_sent_date CEO_Approved_Date,
+     acc.CASE_EO_APRV_AMT Claim_Head_Approved_Amount
+FROM
+    asrit_case ac,
+    asrit_patient ap,
+    asrim_hospitals ah,
+    asrim_locations al,
+    asrit_case_claim acc,
+    asrim_combo acm
+WHERE
+    ac.case_hosp_code = ah.hosp_id
+    AND   ac.case_patient_no = ap.patient_id
+    AND   ah.dist_id = al.loc_id
+    and   ac.case_id=acc.case_id
+    AND   ac.case_status = acm.cmb_dtl_id
+   AND   ac.case_status in ('CD145', 'CD1451','CD1252', 'CD1251', 'CD1253', 'CD125')
+  --AND   ac.case_ID='AP2743135'
+--  AND  ac.actual_clm_sub_dt is not null
+    AND   ac.actual_clm_sub_dt BETWEEN TO_DATE('25/10/2023 00:00:00','DD/MM/YYYY HH24:MI:SS')
+    AND   TO_DATE('31/10/2023 23:59:59','DD/MM/YYYY HH24:MI:SS')
+order by ac.actual_clm_sub_dt desc);

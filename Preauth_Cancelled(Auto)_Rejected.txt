@@ -1,0 +1,61 @@
+SELECT distinct 
+    to_char(add_months(ac.CS_PREAUTH_DT, -3), 'YYYY') 
+    || '-'||(to_char(add_months(ac.CS_PREAUTH_DT, -3), 'YYYY') + 1) as FINANCIAL_YEAR,
+    ac.CASE_ID CASE_ID,
+    ah.hosp_name HOSPITAL_NAME,
+    ac.CASE_HOSP_CODE AS HOSPITAL_ID,
+    al.loc_name AS HOSPITAL_DISTRICT,
+    ah.GOVT_HOSP_TYPE as HOSPITAL_CATEGORY,
+    ah.HOSP_TYPE HOSPITAL_TYPE,
+     to_char(ac.cs_preauth_dt,'DD/MM/YYYY HH:MI:SS') as PREAUTH_INITIATED_DATE,
+    acid.CASE_TOT_PCKG_AMT AS PREAUTH_INITIATED_AMOUNT,
+    AC.CASE_STATUS AS case_status_code,
+    case
+    when ac.case_status in ('CD3018', 'CD82', 'CD88', 'CD1983')
+        then 'Preauth Rejected'
+    when ac.case_status in ('CD127', 'CD1277')
+        THEN 'Preauth Cancelled(Auto)'
+    else null end as case_status,
+    ACB.CMB_DTL_NAME AS case_status_name,
+    ap.uhidvalue health_card_number,
+    ap.patient_id PATIENT_ID,
+    (ap.first_name ||' '||ap.middle_name||' '||ap.last_name) as PATIENT_NAME,
+    ap.RESIDENT_ID RESIDENT_ID,
+    ap.contact_no PATIENT_MOBILE_NO,
+    ap.gender GENDER,
+    ap.age AGE,
+    (select loc_name from asrim_locations where loc_id = ap.district_code) PATIENT_DISTRICT,
+    (select loc_name from asrim_locations where loc_id = ap.mandal_code) PATIENT_MANDAL,
+    (select loc_name from asrim_locations where loc_id = ap.village_code) PATIENT_VILLAGE,
+    ap.pin_code PIN_CODE,
+    (select CMB_DTL_NAME from ASRIM_COMBO where CMB_DTL_ID = ap.occupation_cd) OCCUPATION,
+    acid.CASE_COMPLAINT AS COMPLAINTS,
+    apd.FAMILY_HISTORY AS FAMILY_HISTORY,
+    acid.CASE_PAST_HISTORY AS HISTORY_ILLNESS,
+    acid.CASE_PROV_DIAGNOSIS AS PAST_HISTORY,
+    adm.DIS_MAIN_ID AS SPECIALITY_CODE,
+    adm.DIS_MAIN_NAME AS SPECIALITY_NAME,
+    ads.DIS_SUB_ID SUB_SPECIALITY_CODE,
+    ads.DIS_NAME AS SUB_SPECIALITY_NAME,
+    as1.SURGERY_ID AS PROCEDURE_CODE,
+    as1.SURGERY_DESC AS PROCEDURE_NAME,
+    to_char(ac.cs_apprv_rej_dt,'dd/mm/yyyy HH24:MI:SS') as PREAUTH_REJECTED_DATE
+
+FROM ASRIT_CASE AC
+LEFT JOIN ASRIT_CASE_SURGERY ACS ON AC.CASE_ID = ACS.CASE_ID
+LEFT JOIN ASRIM_SURGERY AS1 ON AS1.SURGERY_ID =  ACS.SURGERY_CODE AND AS1.DIS_MAIN_ID = ACS.DIS_MAIN_CODE
+LEFT JOIN ASRIM_DISEASE_MAIN adm ON adm.DIS_MAIN_ID = acs.DIS_MAIN_CODE
+LEFT JOIN ASRIM_DISEASE_SUB ads ON ads.DIS_MAIN_ID = adm.DIS_MAIN_ID AND ads.DIS_SUB_ID = acs.DIS_SUB_CODE
+LEFT JOIN ASRIM_COMBO ACB ON AC.CASE_STATUS = ACB.CMB_DTL_ID
+LEFT JOIN ASRIM_HOSPITALS AH ON AC.CASE_HOSP_CODE = AH.HOSP_ID
+LEFT JOIN ASRIM_LOCATIONS AL ON AH.DIST_ID = AL.LOC_ID
+LEFT JOIN ASRIT_PATIENT AP on AC.CASE_PATIENT_NO=AP.PATIENT_ID
+LEFT JOIN ASRIT_PATIENT_DETAILS APD ON APD.PATIENT_ID=AP.PATIENT_ID
+LEFT JOIN asrit_case_invest_dtls acid ON acid.case_id = ac.case_id
+    
+WHERE ac.case_status in ('CD3018', 'CD82', 'CD88', 'CD1983','CD127', 'CD1277')
+    AND as1.state_flag IN ('AP','BOTH')
+    AND ac.cs_preauth_dt is not null
+    AND   ac.CS_PREAUTH_DT BETWEEN TO_DATE('01/10/2023 00:00:00','dd/mm/yyyy HH24:MI:SS') 
+    AND TO_DATE('31/10/2023 23:59:59','dd/mm/yyyy HH24:MI:SS')
+    order by  to_char(ac.cs_preauth_dt,'DD/MM/YYYY HH:MI:SS') desc;

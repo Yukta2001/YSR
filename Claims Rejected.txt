@@ -1,0 +1,26 @@
+SELECT DISTINCT
+    to_char(add_months(ac.actual_clm_sub_dt, -3), 'YYYY') 
+    || '-'||(to_char(add_months(ac.actual_clm_sub_dt, -3), 'YYYY') + 1) as FINANCIAL_YEAR,
+    a.CASE_ID,
+    a.hosp_name,
+    ac.CASE_HOSP_CODE AS hosp_id,
+    l.loc_name AS hosp_dist,
+    a.GOVT_HOSP_TYPE as hosp_category,
+    a.HOSP_TYPE,
+    ac.clm_sub_dt AS claim_initiated_date,
+    ac.cs_clm_bill_amt AS claim_initiated_amount,
+    a.status_name AS Current_Case_Status,
+    ac.actual_clm_sub_dt Claim_submitted_date
+FROM
+    asrir_pre_auth_view_ap a,
+    asrit_case ac,
+    asrim_locations l
+WHERE
+    a.case_id = ac.case_id
+    AND   l.loc_id = a.hosp_dist_id
+    AND   l.loc_hdr_id = 'LH6'
+    AND   ac.case_status in ('CD382','CD2025','CD1187','CD1737','CD20016')
+  --  AND   ac.case_hosp_code='HS318'
+    AND  ac.actual_clm_sub_dt BETWEEN TO_DATE('01/04/2021 00:00:00','dd/mm/yyyy HH24:MI:SS') 
+    AND TO_DATE('31/03/2022 23:59:59','dd/mm/yyyy HH24:MI:SS')
+    order by ac.actual_clm_sub_dt desc;
