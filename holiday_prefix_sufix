@@ -1,0 +1,46 @@
+CREATE OR REPLACE FUNCTION ysr.holiday_prefix_suffix_test(
+	start_date date,end_date date)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE
+prev_date DATE := start_date - INTERVAL '1 DAY';
+next_date DATE := end_date + INTERVAL '1 DAY';
+prefix varchar := '';
+suffix varchar := '';
+pref_suf varchar;
+BEGIN
+-- 	WHILE prev_date > (SELECT MIN(holiday_date) FROM ysr.ysr_employee_holiday_mst)
+	LOOP
+		IF prev_date IN (SELECT holiday_date FROM ysr.ysr_employee_holiday_mst) THEN
+			prev_date := prev_date - INTERVAL '1 DAY';
+		ELSE 
+			IF prev_date + INTERVAL '1 DAY' <> start_date THEN 
+				 prefix := to_char(prev_date + INTERVAL '1 DAY','DD-MM-YY');
+			ELSE 
+				prefix := 'NA';
+			END IF;
+			EXIT;
+		END IF;
+	END LOOP;
+
+-- 	WHILE next_date < (SELECT MAX(holiday_date) FROM ysr.ysr_employee_holiday_mst)
+	LOOP
+		IF next_date IN (SELECT holiday_date FROM ysr.ysr_employee_holiday_mst) THEN
+			next_date := next_date + INTERVAL '1 DAY';
+		ELSE 
+			IF next_date - INTERVAL '1 DAY' <> end_date THEN 
+				suffix := to_char(next_date - INTERVAL '1 DAY','DD-MM-YY');
+			ELSE 
+				suffix := 'NA';
+			END IF;
+			EXIT;
+		END IF;
+	END LOOP;
+	
+	pref_suf := prefix||':'||suffix;
+	RETURN pref_suf;
+END;
+$BODY$;
