@@ -1,5 +1,5 @@
-CREATE OR REPLACE FUNCTION ysr.holiday_prefix_suffix_test(
-	start_date date,end_date date)
+CREATE OR REPLACE FUNCTION ysr.holiday_prefix_suffix_test_V1(
+	start_date date,user_id integer)
     RETURNS character varying
     LANGUAGE 'plpgsql'
     COST 100
@@ -7,40 +7,49 @@ CREATE OR REPLACE FUNCTION ysr.holiday_prefix_suffix_test(
 AS $BODY$
 DECLARE
 prev_date DATE := start_date - INTERVAL '1 DAY';
-next_date DATE := end_date + INTERVAL '1 DAY';
+-- next_date DATE := end_date + INTERVAL '1 DAY';
+p_date date;
+n_date date;
+ss_date date;
+se_date date;
 prefix varchar := '';
 suffix varchar := '';
 pref_suf varchar;
+user_no integer;
 BEGIN
--- 	WHILE prev_date > (SELECT MIN(holiday_date) FROM ysr.ysr_employee_holiday_mst)
+user_no := user_id;
+SELECT a.shift_start_date,a.shift_end_date into ss_date,se_date 
+FROM ysr.ysr_employee_shift_schedule_details a
+WHERE a.shift_id = 3
+AND a.user_id = user_no;
+p_date := se_date - INTERVAL '1 DAY';
+IF to_char(prev_date,'DD-MM-YY') = to_char(ss_date,'DD-MM-YY') THEN
 	LOOP
-		IF prev_date IN (SELECT holiday_date FROM ysr.ysr_employee_holiday_mst) THEN
-			prev_date := prev_date - INTERVAL '1 DAY';
+		IF p_date IN (SELECT holiday_date FROM ysr.ysr_employee_holiday_mst) THEN
+			p_date := p_date - INTERVAL '1 DAY';
 		ELSE 
-			IF prev_date + INTERVAL '1 DAY' <> start_date THEN 
-				 prefix := to_char(prev_date + INTERVAL '1 DAY','DD-MM-YY');
+			IF p_date + INTERVAL '1 DAY' <> start_date THEN 
+				 prefix := to_char(p_date + INTERVAL '1 DAY','DD-MM-YY');
+			ELSE 
+				prefix := 'NA';
+			END IF;
+		END IF;
+	END LOOP;
+ELSE
+	LOOP
+		IF p_date IN (SELECT holiday_date FROM ysr.ysr_employee_holiday_mst) THEN
+			p_date := p_date - INTERVAL '1 DAY';
+		ELSE 
+			IF p_date + INTERVAL '1 DAY' <> start_date THEN 
+				 prefix := to_char(p_date + INTERVAL '1 DAY','DD-MM-YY');
 			ELSE 
 				prefix := 'NA';
 			END IF;
 			EXIT;
 		END IF;
 	END LOOP;
-
--- 	WHILE next_date < (SELECT MAX(holiday_date) FROM ysr.ysr_employee_holiday_mst)
-	LOOP
-		IF next_date IN (SELECT holiday_date FROM ysr.ysr_employee_holiday_mst) THEN
-			next_date := next_date + INTERVAL '1 DAY';
-		ELSE 
-			IF next_date - INTERVAL '1 DAY' <> end_date THEN 
-				suffix := to_char(next_date - INTERVAL '1 DAY','DD-MM-YY');
-			ELSE 
-				suffix := 'NA';
-			END IF;
-			EXIT;
-		END IF;
-	END LOOP;
-	
-	pref_suf := prefix||':'||suffix;
+END IF;	
+	pref_suf := prefix;
 	RETURN pref_suf;
 END;
 $BODY$;
