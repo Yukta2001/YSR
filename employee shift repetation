@@ -1,0 +1,10 @@
+with gsd as
+(SELECT gs::date as DATE,
+to_char(gs::date,'Day') as DAYS
+FROM generate_series(current_timestamp,current_timestamp + INTERVAL '60 Days', INTERVAL '1 DAY') as gs)
+SELECT esd.user_id,esd.shift_rule_id,
+sr.days,CONCAT(sr.start_time,' ',sr.start_time_am_pm),CONCAT(sr.end_time,' ',sr.end_time_am_pm)
+FROM ysr.ysr_employee_shift_details esd
+LEFT JOIN ysr.ysr_employee_shift_rule_mst sr ON esd.shift_rule_id = sr.shift_rule_id
+LEFT JOIN gsd ON TRIM(UPPER(gsd.days)) = TRIM(UPPER(sr.days))
+WHERE esd.user_id = 5
