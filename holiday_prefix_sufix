@@ -6,3 +6,30 @@ SELECT dq.prev_date  FROM dq
 WHERE dq.remainder IN (SELECT day_order from ysr.ysr_employee_shift_details a
 JOIN ysr.ysr_employee_shift_rule_mst b ON a.shift_rule_id =b.shift_rule_id where b.shift_rule_id =1 )
 ORDER BY dq.prev_date;
+=============================================================================================================================
+
+WITH dq AS (
+    SELECT
+        prev_date,
+        (prev_date - a.shift_start_date) % (SELECT MAX(day_order) FROM ysr.ysr_employee_shift_details) AS remainder
+    FROM
+        generate_series('2024-07-01'::date, '2024-08-01'::date - INTERVAL '1 DAY', INTERVAL '1 DAY') AS prev_date
+    LEFT JOIN
+        ysr.ysr_employee_shift_schedule_details a 
+    ON
+        a.user_id = 5
+    WHERE
+        a.is_active = true
+)
+SELECT
+    dq.prev_date
+FROM
+    dq
+JOIN
+    ysr.ysr_employee_shift_details a ON dq.remainder = a.day_order
+JOIN
+    ysr.ysr_employee_shift_rule_mst b ON a.shift_rule_id = b.shift_rule_id
+WHERE
+    b.shift_rule_id = 1
+ORDER BY
+    dq.prev_date;
