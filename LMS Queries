@@ -1,0 +1,5 @@
+SELECT CASE WHEN
+(SELECT SUM(credit_leave) FROM ysr.ysr_employee_leave_balance_details
+WHERE leave_rqst_id = 'LEV00000006') = 0
+THEN 'True'
+ELSE 'False' END as cancel_yn;
