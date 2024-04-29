@@ -3,3 +3,13 @@ SELECT CASE WHEN
 WHERE leave_rqst_id = 'LEV00000006') = 0
 THEN 'True'
 ELSE 'False' END as cancel_yn;
+
+
+
+Dashboard Querie:
+====================
+SELECT COUNT(*) FROM ysr.ysr_employee_leave_rqst_details a JOIN ysr.ysr_step_role_mapping b ON a.rqst_status = b.step_role_id JOIN ysr.ysr_user_role_mapping c ON b.role_id = c.role_id WHERE c.user_id = 87;
+
+
+
+SELECT a.rqst_id,d.user_name,c.employee_type,c.gender FROM ysr.ysr_employee_leave_rqst_details a JOIN ysr.ysr_employee_leave_rqst_details_audit b ON a.rqst_id = b.rqst_id JOIN ysr.ysr_employee_details c ON a.user_id = c.user_id JOIN ysr.ysr_user_mst d ON c.user_id = d.user_id WHERE a.rqst_status IN (78,80,85,88,91,99,103,125,130,137,142,145,152,157,160,163) AND b.upd_by = 60
