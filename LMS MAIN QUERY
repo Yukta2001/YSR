@@ -1,0 +1,69 @@
+WITH mq AS (SELECT '1' param_mq,CASE WHEN rqst_id IS NULL THEN 0 ELSE 1 END leave_yes_no FROM ysr.ysr_employee_leave_rqst_details
+WHERE TO_DATE('2024-08-03','YYYY-MM-DD') >= approved_from::timestamp::date
+AND TO_DATE('2024-08-03','YYYY-MM-DD') <= approved_to::timestamp::date
+AND user_id = 79),
+
+sq AS (
+SELECT '1' param_sq,TO_DATE('2024-08-03','YYYY-MM-DD') as g_date,
+ CASE WHEN	
+	(SELECT (TO_DATE('2024-08-03','YYYY-MM-DD') - (SELECT shift_start_date FROM ysr.ysr_employee_shift_start_end_details a
+	WHERE a.user_id = 79
+	AND is_active = true))%(SELECT MAX(day_order) FROM ysr.ysr_employee_shift_details b
+	WHERE b.user_id = 79)) = 0 THEN 
+	(SELECT MAX(day_order) FROM ysr.ysr_employee_shift_details b
+	WHERE b.user_id = 79)
+	ELSE 
+	(SELECT (TO_DATE('2024-08-03','YYYY-MM-DD') - (SELECT shift_start_date FROM ysr.ysr_employee_shift_start_end_details a
+	WHERE a.user_id = 79
+	AND is_active = true))%(SELECT MAX(day_order) FROM ysr.ysr_employee_shift_details b
+	WHERE b.user_id = 79)) END remainder
+),
+
+tq AS (
+SELECT '1' param_tq,
+CASE WHEN shift_date::timestamp::date = TO_DATE('2024-08-03','YYYY-MM-DD') THEN
+	(SELECT shift_rule_id FROM ysr.ysr_employee_shift_chng_overtime_details WHERE shift_date::timestamp::date = TO_DATE('2024-07-23','YYYY-MM-DD')
+	 AND user_id = 79)
+ELSE 0
+END new_shift_assigned,(SELECT shift_rule_id FROM ysr.ysr_employee_shift_details a
+	JOIN sq ON a.day_order=sq.remainder
+	WHERE user_id=79)old_shift_assigned
+FROM ysr.ysr_employee_shift_chng_overtime_details
+WHERE user_id = 79
+),
+dq AS
+(
+	SELECT '1' param_dq, ROUND(EXTRACT(EPOCH FROM (srm.end_time - srm.start_time)/3600),1) as overtime_diff 
+	FROM ysr.ysr_employee_shift_chng_overtime_details eod
+	JOIN ysr.ysr_employee_shift_mst srm ON eod.shift_rule_id = srm.shift_rule_id
+	WHERE user_id = 79
+	AND shift_date::timestamp::date = TO_DATE('2024-08-03','YYYY-MM-DD')
+	AND is_overtime = true
+),
+hq AS
+(SELECT '1' param_hq,a.holiday_date
+FROM ysr.ysr_employee_holiday_mst a
+JOIN ysr.ysr_employee_holiday_filter_value_mapping b ON a.holiday_id = b.holiday_id
+JOIN ysr.ysr_user_district_mapping c ON b.value_id = cast(c.district_id as varchar)
+AND c.user_id = 79
+AND a.holiday_date = TO_DATE('2024-08-03','YYYY-MM-DD')
+AND b.filter_id = 3 
+AND a.is_active = true)
+SELECT
+CASE WHEN leave_yes_no = 1 THEN 'On Leave, no hours/shift worked'
+WHEN hq.holiday_date is NOT NULL THEN CASE WHEN old_shift_assigned = 1 THEN 'Off Day and Holiday, No work done'
+WHEN new_shift_assigned !=0 THEN cast(new_shift_assigned as varchar)
+WHEN old_shift_assigned != 1 THEN 'Holiday, No work done' END
+WHEN hq.holiday_date is NOT NULL THEN 
+	CASE WHEN old_shift_assigned = 1 THEN 'Off Day & Holiday, No work done' 
+	ELSE
+		'Holiday, No work done'
+	END
+WHEN old_shift_assigned = 1 AND hq.holiday_date is NULL THEN 'Off Day, No work done'
+ELSE 'Working Day' END hours_worked 
+
+FROM sq
+LEFT JOIN mq ON mq.param_mq = sq.param_sq
+LEFT JOIN tq ON sq.param_sq = tq.param_tq
+LEFT JOIN dq ON dq.param_dq = sq.param_sq
+LEFT JOIN hq ON hq.param_hq = sq.param_sq;
