@@ -17,13 +17,26 @@ GROUP BY tableowner;
 DO $$
 DECLARE
     rec RECORD;
+    start_processing BOOLEAN := FALSE;
 BEGIN
     FOR rec IN
-        SELECT '"'||schemaname||'"'||'.'||'"'||indexname||'"' AS r_table
-		FROM pg_indexes WHERE schemaname = 'public'
-		
+        SELECT 
+            '"'||schemaname||'"'||'.'||'"'||indexname||'"' AS r_table,
+            indexname
+        FROM 
+            pg_indexes 
+        WHERE 
+            schemaname = 'public'
+        ORDER BY 
+            indexname
     LOOP
-        EXECUTE 'REINDEX INDEX ' || rec.r_table;
+        -- Start processing only after encountering the specified index
+        IF start_processing THEN
+            EXECUTE 'REINDEX INDEX ' || rec.r_table;
+            RAISE NOTICE 'Index %: % reindexed', rec.row_num, rec.r_table;
+        ELSIF rec.indexname = 'idx_egbs_demanddetail_tenantid' THEN
+            start_processing := TRUE;
+        END IF;
     END LOOP;
 END $$;
 ------------------------------------------------------------------------------
