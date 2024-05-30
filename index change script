@@ -1,0 +1,26 @@
+REINDEX INDEX public.index_eg_ws_scheduler_locality
+SELECT * FROM information_schema.indexes
+SELECT * FROM information_schema.tables
+SELECT schemaname||'.'||indexname FROM pg_indexes WHERE schemaname = 'public'
+LOOP
+SELECT table_schema||'.'||table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+and table_type = 'BASE TABLE';
+DO $$
+DECLARE
+    rec RECORD;
+BEGIN
+    FOR rec IN
+        SELECT table_schema || '.' || table_name AS r_table
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    LOOP
+        EXECUTE 'REINDEX INDEX ' || rec.r_table;
+    END LOOP;
+END $$;
+
+
+
+select tableowner,count(tablename) from pg_catalog.pg_tables
+where schemaname = 'public' 
+GROUP BY tableowner;
