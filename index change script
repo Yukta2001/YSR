@@ -20,7 +20,7 @@ DECLARE
     start_processing BOOLEAN := FALSE;
 BEGIN
     FOR rec IN
-        SELECT 
+        SELECT row_number() OVER (ORDER BY indexname) AS r_no,
             '"'||schemaname||'"'||'.'||'"'||indexname||'"' AS r_table,
             indexname
         FROM 
@@ -31,12 +31,22 @@ BEGIN
             indexname
     LOOP
         -- Start processing only after encountering the specified index
+        IF NOT start_processing THEN
+            IF rec.r_no > 293 THEN
+                start_processing := TRUE;
+            END IF;
+        END IF;
+
         IF start_processing THEN
-            EXECUTE 'REINDEX INDEX ' || rec.r_table;
-            RAISE NOTICE 'Index %: % reindexed', rec.row_num, rec.r_table;
-        ELSIF rec.indexname = 'idx_egbs_demanddetail_tenantid' THEN
-            start_processing := TRUE;
+            BEGIN
+                EXECUTE 'REINDEX INDEX ' || rec.r_table;
+                RAISE NOTICE 'Success -> R_NO: % | R_TABLE: %', rec.r_no,rec.r_table;
+            EXCEPTION
+                WHEN OTHERS THEN
+                    RAISE WARNING 'Failed -> R_NO: % | R_TABLE: %', rec.r_no,rec.r_table;
+            END;
         END IF;
     END LOOP;
 END $$;
+
 ------------------------------------------------------------------------------
