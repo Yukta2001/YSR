@@ -50,3 +50,15 @@ BEGIN
 END $$;
 
 ------------------------------------------------------------------------------
+*Find table name using index name:-
+
+SELECT 
+    t.relname AS table_name
+FROM 
+    pg_index i
+JOIN 
+    pg_class t ON t.oid = i.indrelid
+JOIN 
+    pg_class ind ON ind.oid = i.indexrelid
+WHERE 
+    ind.relname = 'idx_egcl_bill_consumercode';
