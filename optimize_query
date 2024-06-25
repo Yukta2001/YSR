@@ -1,40 +1,62 @@
-SELECT ahc.hc_id,
-(P.FIRST_NAME || ' ' || P.MIDDLE_NAME || ' ' || P.LAST_NAME) PATIENT_NAME,
-P.RATION_CARD_NO,
-(SELECT AL.LOC_NAME FROM ASRIM_LOCATIONS AL WHERE AL.LOC_ID = P.DISTRICT_CODE AND AL.LOC_HDR_ID = 'LH6' ) DISTRICT_NAME,
-(SELECT AL.LOC_NAME FROM ASRIM_LOCATIONS AL WHERE AL.LOC_ID = P.mandal_code) Mandal,
-(SELECT AL.LOC_NAME FROM ASRIM_LOCATIONS AL WHERE AL.LOC_ID = P.village_code) Village,
-(SELECT AL.LOC_NAME FROM ASRIM_LOCATIONS AL WHERE AL.LOC_ID = P.hamlet_code) Hamlet,
-ah.hosp_id ref_hosp_id,
-AH.HOSP_NAME ref_HOSP_NAME,
-ahd.loc_name hosp_dist_name,
-p.patient_id,
-P.PATIENT_IPOP,
-c.CASE_ID,
-DISEASE.DIS_MAIN_NAME Category_Name,
-DISEASE.DIS_MAIN_ID Category_Code,
-SURG.surgery_id Surg_Code,
-SURG.surgery_desc Surg_Name,
-P.CRT_DT Ref_entry_dt,
-P.Reg_Hosp_Date Reported_Dt,
-cmb.cmb_dtl_name case_status,
-case
-when (SELECT group_id FROM Asrim_Case_Status_Grp CSG WHERE CSG.status_id = C.CASE_STATUS) = 'CD17' AND CSP.CASE_APPRV_REJ_DT IS NOT NULL then
-    DECODE(b.CASE_CMO_APRV_AMT, NULL, 
-    DECODE(b.CASE_CEO_APRV_AMT, NULL, b.CASE_TRUST_APRV_AMT, 0, b.CASE_TRUST_APRV_AMT, b.CASE_CEO_APRV_AMT), b.CASE_CMO_APRV_AMT)
-end as pre_auth_appr_amt,
-c.lst_upd_dt Status_Dt,
-ahc.hc_date,
-(SELECT al.loc_val FROM ASRIM_LOCATIONS AL WHERE AL.LOC_ID = P.DISTRICT_CODE AND AL.LOC_HDR_ID = 'LH6') loc_val
-FROM ASRIT_PATIENT P 
-JOIN asrim_hc ahc ON ahc.hc_id = p.src_hc_id
-LEFT JOIN asrim_hospitals ah ON AH.HOSP_ID = p.REF_HOSP_NO
-LEFT JOIN asrim_locations ahd ON ahd.loc_id = ah.hosp_dist_cd
-JOIN ASRIT_CASE C ON p.patient_id = c.case_patient_no
-LEFT JOIN ASRIT_CASE_SURGERY ACS ON ACS.CASE_ID  = C.CASE_ID
-LEFT JOIN ASRIM_SURGERY SURG ON SURG.SURGERY_ID = ACS.SURGERY_CODE AND SURG.DIS_MAIN_ID = ACS.DIS_MAIN_CODE
-LEFT JOIN ASRIM_DISEASE_MAIN DISEASE ON DISEASE.DIS_MAIN_ID = ACS.DIS_MAIN_CODE
-LEFT JOIN ASRIT_CASE_PROCES CSP ON CSP.CASE_ID = C.CASE_ID
-LEFT JOIN ASRIT_CASE_CLAIM b ON b.CASE_ID = C.CASE_ID
-LEFT JOIN asrim_combo cmb ON c.case_status = cmb.cmb_dtl_id
-WHERE P.SRC_REGISTRATION = 'MC';
+SELECT 
+    ahc.hc_id,
+    (P.FIRST_NAME || ' ' || P.MIDDLE_NAME || ' ' || P.LAST_NAME) AS patient_name,
+    P.RATION_CARD_NO,
+    d.LOC_NAME AS district_name,
+    m.LOC_NAME AS mandal_name,
+    v.LOC_NAME AS village_name,
+    h.LOC_NAME AS hamlet_name,
+    ah.hosp_id AS ref_hosp_id,
+    AH.HOSP_NAME AS ref_hosp_name,
+    ahd.loc_name AS hosp_dist_name,
+    P.patient_id,
+    P.PATIENT_IPOP,
+    c.CASE_ID,
+    DISEASE.DIS_MAIN_NAME AS category_name,
+    DISEASE.DIS_MAIN_ID AS category_code,
+    SURG.surgery_id AS surg_code,
+    SURG.surgery_desc AS surg_name,
+    P.CRT_DT AS ref_entry_dt,
+    P.Reg_Hosp_Date AS reported_dt,
+    cmb.cmb_dtl_name AS case_status,
+    CASE
+        WHEN CSG.group_id = 'CD17' AND CSP.CASE_APPRV_REJ_DT IS NOT NULL THEN
+            NVL(b.CASE_CMO_APRV_AMT, NVL(b.CASE_CEO_APRV_AMT, NVL(b.CASE_TRUST_APRV_AMT, 0)))
+    END AS pre_auth_appr_amt,
+    c.lst_upd_dt AS status_dt,
+    ahc.hc_date,
+    d.LOC_VAL AS loc_val
+FROM 
+    ASRIT_PATIENT P
+JOIN 
+    asrim_hc ahc ON ahc.hc_id = p.src_hc_id
+LEFT JOIN 
+    asrim_hospitals ah ON ah.hosp_id = p.REF_HOSP_NO
+LEFT JOIN 
+    asrim_locations ahd ON ahd.loc_id = ah.hosp_dist_cd
+JOIN 
+    ASRIT_CASE C ON P.patient_id = c.case_patient_no
+LEFT JOIN 
+    ASRIT_CASE_SURGERY ACS ON ACS.case_id = C.CASE_ID
+LEFT JOIN 
+    ASRIM_SURGERY SURG ON SURG.surgery_id = ACS.surgery_code AND SURG.dis_main_id = ACS.dis_main_code
+LEFT JOIN 
+    ASRIM_DISEASE_MAIN DISEASE ON DISEASE.dis_main_id = ACS.dis_main_code
+LEFT JOIN 
+    ASRIT_CASE_PROCES CSP ON CSP.case_id = C.CASE_ID
+LEFT JOIN 
+    ASRIT_CASE_CLAIM b ON b.case_id = C.CASE_ID
+LEFT JOIN 
+    asrim_combo cmb ON c.case_status = cmb.cmb_dtl_id
+LEFT JOIN 
+    asrim_case_status_grp CSG ON CSG.status_id = C.case_status
+LEFT JOIN 
+    ASRIM_LOCATIONS d ON d.LOC_ID = P.DISTRICT_CODE AND d.LOC_HDR_ID = 'LH6'
+LEFT JOIN 
+    ASRIM_LOCATIONS m ON m.LOC_ID = P.mandal_code
+LEFT JOIN 
+    ASRIM_LOCATIONS v ON v.LOC_ID = P.village_code
+LEFT JOIN 
+    ASRIM_LOCATIONS h ON h.LOC_ID = P.hamlet_code
+WHERE 
+    P.SRC_REGISTRATION = 'MC';
