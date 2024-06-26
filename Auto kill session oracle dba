@@ -1,0 +1,29 @@
+DECLARE
+  CURSOR c_sessions IS
+    SELECT s.sid, s.serial#
+    FROM v$session s
+    WHERE s.status = 'ACTIVE' 
+      AND s.type = 'USER' 
+      AND s.last_call_et > 300
+    ORDER BY s.last_call_et DESC;
+    
+  v_sid v$session.sid%TYPE;
+  v_serial# v$session.serial#%TYPE;
+  
+BEGIN
+  OPEN c_sessions;
+  LOOP
+    FETCH c_sessions INTO v_sid, v_serial#;
+    EXIT WHEN c_sessions%NOTFOUND;
+    
+    BEGIN
+      EXECUTE IMMEDIATE 'ALTER SYSTEM KILL SESSION ''' || v_sid || ',' || v_serial# || ''' IMMEDIATE';
+      DBMS_OUTPUT.PUT_LINE('Killed session: ' || v_sid || ',' || v_serial#);
+    EXCEPTION
+      WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Failed to kill session: ' || v_sid || ',' || v_serial# || ' - ' || SQLERRM);
+    END;
+  END LOOP;
+  CLOSE c_sessions;
+END;
+/
