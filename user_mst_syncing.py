@@ -1,7 +1,6 @@
 import pandas as pd
 import psycopg2
 import oracledb
-import datetime
 
 # Oracle connection function
 def get_oracle_connection():
@@ -62,53 +61,48 @@ print("Before creating PostgreSQL connection")
 postgres_conn = create_postgres_connection()
 print("After creating PostgreSQL connection")
 
-# Function to check if login_id exists in ysr.ysr_user_mst
-def check_login_id_exists(conn, login):
+# Function to update password in ysr.tmp_user_mst if it's changed
+def update_password_if_changed(conn, login, new_password):
     try:
         cursor = conn.cursor()
-        query = "SELECT COUNT(*) FROM ysr.tmp_user_mst WHERE login_name = %s"
+        # Fetch the current password from PostgreSQL
+        query = "SELECT pswd FROM ysr.tmp_user_mst WHERE login_name = %s"
         cursor.execute(query, (login,))
-        count = cursor.fetchone()[0]
-        return count > 0  # Return True if login_id exists, False otherwise
+        current_password = cursor.fetchone()[0]
+
+        # Check if the new password is different from the current password
+        if current_password != new_password:
+            update_query = "UPDATE ysr.tmp_user_mst SET pswd = %s WHERE login_name = %s"
+            cursor.execute(update_query, (new_password, login))
+            conn.commit()
+            print(f"Password for LOGIN ID {login} has been updated.")
+        cursor.close()
     except psycopg2.Error as e:
-        print("Error checking existence:", e)
-        return False  # Return False in case of an error
+        conn.rollback()
+        print("Error updating password:", e)
 
 # Separate DataFrames for existing and non-existing logins
 existing_login = []
 non_existing_login = []
-update_login = []
 
-# Iterate through the DataFrame and append values from the login_id to the list to take only the existing logins
-for index, row in df.iterrows():
-    existing_login.append(row['LOGIN_ID'])
-# Print the list
-print('EXISTING LOGINS')
-print(existing_login)
-
-# Iterate through the DataFrame and check if login_id already exists
+# Iterate through the DataFrame and check if login_id already exists in the database
 for index, row in df.iterrows():
     login = row['LOGIN_ID']
     user = row['USER_NAME']
     enc_password = row['ENCRIPTED_PASSWORD']
 
-    if check_login_id_exists(postgres_conn, login):
-        # Fetch existing bank details from PostgreSQL
-        cursor = postgres_conn.cursor()
-        query = "SELECT login_id,user_name, pswd,CASE WHEN is_active = true THEN 'Yes' ELSE 'No' END AS active_yn FROM ysr.tmp_user_mst WHERE login_id = %s"
-        cursor.execute(query, (login,))
-        existing_login = cursor.fetchone()
+    cursor = postgres_conn.cursor()
+    query = "SELECT login_name FROM ysr.tmp_user_mst WHERE login_name = %s"
+    cursor.execute(query, (login,))
+    result = cursor.fetchone()
 
-        if existing_login is not None:
-            if existing_login[0] != login or existing_login[3] != 'Yes':
-                update_login.append((login, user, enc_password))
-                print(f"LOGIN ID {login} requires update")
+    if result:
+        existing_login.append((login, enc_password))
     else:
         non_existing_login.append((login, user, enc_password))
         print(f"LOGIN ID {login} doesn't exist in the database")
 
-
-# Function to execute insert queries for non-existing banks
+# Function to execute insert queries for non-existing logins
 def execute_postgres_insert_queries(conn, insert_queries):
     try:
         cursor = conn.cursor()
@@ -123,10 +117,13 @@ def execute_postgres_insert_queries(conn, insert_queries):
     finally:
         cursor.close()
 
-
 try:
-    # After executing insert queries for non-existing banks
+    # Insert non-existing logins
     execute_postgres_insert_queries(postgres_conn, non_existing_login)
+
+    # Update existing logins if the password has changed
+    for login, enc_password in existing_login:
+        update_password_if_changed(postgres_conn, login, enc_password)
 
     # Set the status to success if all operations were successful
     status = "success"
@@ -136,3 +133,6 @@ except Exception as ex:
     print("An unexpected error occurred:", ex)
     # You may include the error message in the status insertion
     error_message = str(ex)
+finally:
+    if postgres_conn:
+        postgres_conn.close()
