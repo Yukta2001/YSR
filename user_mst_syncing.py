@@ -92,11 +92,11 @@ print("Before creating PostgreSQL connection")
 postgres_conn = create_postgres_connection()
 print("After creating PostgreSQL connection")
 
-# Function to check if a login_id exists in medical.md_user_mst
-def check_login_exists(cursor, login_id):
-    query = "SELECT COUNT(*) FROM medical.md_user_mst WHERE login_name = %s"
-    cursor.execute(query, (login_id,))
-    return cursor.fetchone()[0] > 0
+# Fetch existing logins from medical.md_user_mst
+existing_login_ids = set()
+with postgres_conn.cursor() as cursor:
+    cursor.execute("SELECT login_name FROM medical.md_user_mst")
+    existing_login_ids.update(row[0] for row in cursor.fetchall())
 
 # Function to insert new login_id details
 def insert_new_login(cursor, row):
@@ -107,7 +107,7 @@ def insert_new_login(cursor, row):
     cursor.execute(query, (
         row['USER_NAME'], row['LOGIN_ID'], row['ENCRIPTED_PASSWORD'], row['HOSP_NAME'],
         row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID'],
-        row['HOSP_MANDAL']
+        row['HOSPITAL_MANDAL']
     ))
 
 # Function to update existing login_id details
@@ -120,41 +120,32 @@ def update_existing_login(cursor, row):
     '''
     cursor.execute(query, (
         row['USER_NAME'], row['HOSP_NAME'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'],
-        row['HOSP_MANDAL_ID'], row['HOSP_MANDAL'], row['ENCRIPTED_PASSWORD'], row['LOGIN_ID']
+        row['HOSP_MANDAL_ID'], row['HOSPITAL_MANDAL'], row['ENCRIPTED_PASSWORD'], row['LOGIN_ID']
     ))
 
+# Function to insert into medical.md_user_role_mapping
+def insert_user_role_mapping(cursor, login_id):
+    query = '''
+    INSERT INTO medical.md_user_role_mapping (user_id, role_id)
+    SELECT user_id, 1 FROM medical.md_user_mst WHERE login_name = %s
+    '''
+    cursor.execute(query, (login_id,))
+
 # Insert records from query1
-cursor = postgres_conn.cursor()
-for index, row in df1.iterrows():
-    if not check_login_exists(cursor, row['LOGIN_ID']):
-        insert_new_login(cursor, row)
-postgres_conn.commit()
+with postgres_conn.cursor() as cursor:
+    for index, row in df1.iterrows():
+        if row['LOGIN_ID'] not in existing_login_ids:
+            insert_new_login(cursor, row)
+            insert_user_role_mapping(cursor, row['LOGIN_ID'])
+    postgres_conn.commit()
 
 # Update records based on query2
-for index, row in df2.iterrows():
-    if check_login_exists(cursor, row['LOGIN_ID']):
-        query = '''
-        SELECT user_name, hosp_name, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name, pswd
-        FROM medical.md_user_mst
-        WHERE login_name = %s
-        '''
-        cursor.execute(query, (row['LOGIN_ID'],))
-        existing_row = cursor.fetchone()
-        if existing_row:
-            existing_row = dict(zip([desc[0] for desc in cursor.description], existing_row))
-            if (
-                existing_row['hosp_name'] != row['HOSP_NAME'] or
-                existing_row['hosp_dist_id'] != row['HOSP_DIST_ID'] or
-                existing_row['hosp_dist_name'] != row['HOSP_DIST_NAME'] or
-                existing_row['hosp_mandal_id'] != row['HOSP_MANDAL_ID'] or
-                existing_row['hosp_mandal_name'] != row['HOSP_MANDAL'] or
-                existing_row['pswd'] != row['ENCRIPTED_PASSWORD']
-            ):
-                update_existing_login(cursor, row)
-postgres_conn.commit()
+with postgres_conn.cursor() as cursor:
+    for index, row in df2.iterrows():
+        update_existing_login(cursor, row)
+    postgres_conn.commit()
 
-# Close PostgreSQL cursor and connection
-cursor.close()
+# Close PostgreSQL connection
 postgres_conn.close()
 
 print("All operations completed successfully")
