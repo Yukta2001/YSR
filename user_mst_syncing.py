@@ -5,10 +5,10 @@ import oracledb
 # Oracle connection function
 def get_oracle_connection():
     user_name = 'ARGSRI_FINAL' 
-    password_var = 'ntrvs#123'
-    hostname = '10.9.39.218'
+    password_var = 'ysrStg#423'
+    hostname = '10.10.223.179'
     port = 1521
-    sid = 'pysrasdb'
+    sid = 'sysrasdb'
     
     connection = oracledb.connect(user=user_name, password=password_var,
                                   host=hostname, port=port, sid=sid)
@@ -46,9 +46,20 @@ def create_postgres_connection():
 # Oracle DB Query and DataFrame Creation
 cursor = get_oracle_connection()
 query = '''SELECT to_char(first_name||' '||last_name) as user_name,
+au.user_id as emp_code,ah.hosp_id,ah.hosp_name,ah.dist_id hosp_dist_id,
+al.loc_name hosp_dist_name,
+aeh.mandal as hosp_mandal_id,
+(SELECT LOC_NAME FROM ASRIM_LOCATIONS WHERE aeh.mandal = loc_id) hospital_mandal,
 CASE WHEN NEW_EMP_CODE IS NOT NULL THEN new_emp_code
-ELSE login_name END as login_id,encripted_password 
-FROM asrim_users WHERE ACTIVE_YN = 'Y' AND PRIMARY_FLAG = 'Y' FETCH NEXT 10 ROWS ONLY'''
+ELSE login_name END as login_id,encripted_password,au.ACTIVE_YN
+FROM asrim_nwh_users anu
+JOIN asrim_users au ON anu.user_id=au.user_id
+JOIN asrim_hospitals ah ON anu.hosp_id = ah.hosp_id
+LEFT JOIN asrim_locations al ON ah.dist_id=al.loc_id
+LEFT join ASRIT_EMPNL_HOSPINFO AEH on AH.HOSP_EMPNL_REF_NUM = AEH.HOSPINFO_ID
+WHERE au.PRIMARY_FLAG = 'Y' 
+AND anu.eff_end_dt is null
+AND (au.crt_dt >= trunc(sysdate) - 1 OR au.lst_upd_dt >= trunc(sysdate) - 1)'''
 cursor.execute(query)
 df = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
 print(df)
