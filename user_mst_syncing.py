@@ -77,20 +77,13 @@ WHERE au.PRIMARY_FLAG = 'Y'
 AND anu.eff_end_dt is null
 AND au.lst_upd_dt >= trunc(sysdate) - 1'''
 
-query3 = '''SELECT user_id,hosp_id FROM asrim_nwh_users 
-WHERE eff_end_dt is null 
-AND crt_dt >= trunc(sysdate) - 1'''
-
 cursor.execute(query1)
 df1 = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
 
 cursor.execute(query2)
 df2 = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
 
-cursor.execute(query3)
-df3 = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
-
-# Close Oracle cursor
+# Close Oracle cursor and connection
 cursor.close()
 connection.close()
 
@@ -105,6 +98,18 @@ def check_login_exists(cursor, login_id):
     cursor.execute(query, (login_id,))
     return cursor.fetchone()[0] > 0
 
+# Function to insert new login_id details
+def insert_new_login(cursor, row):
+    query = '''
+    INSERT INTO medical.md_user_mst (user_name, login_name, pswd, hospital_name, hosp_id, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    '''
+    cursor.execute(query, (
+        row['USER_NAME'], row['LOGIN_ID'], row['ENCRIPTED_PASSWORD'], row['HOSP_NAME'],
+        row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID'],
+        row['HOSP_MANDAL']
+    ))
+
 # Function to update existing login_id details
 def update_existing_login(cursor, row):
     query = '''
@@ -115,70 +120,37 @@ def update_existing_login(cursor, row):
     '''
     cursor.execute(query, (
         row['USER_NAME'], row['HOSP_NAME'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'],
-        row['HOSP_MANDAL_ID'], row['HOSP_MANDAL_NAME'], row['ENCRIPTED_PASSWORD'], row['LOGIN_ID']
+        row['HOSP_MANDAL_ID'], row['HOSP_MANDAL'], row['ENCRIPTED_PASSWORD'], row['LOGIN_ID']
     ))
 
-# Function to insert new login_id details
-def insert_new_login(cursor, row):
-    query = '''
-    INSERT INTO medical.md_user_mst (user_name, login_name, pswd, hospital_name, hosp_id, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    '''
-    cursor.execute(query, (
-        row['USER_NAME'], row['LOGIN_ID'], row['ENCRIPTED_PASSWORD'], row['HOSP_NAME'],
-        row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID'],
-        row['HOSP_MANDAL_NAME']
-    ))
-
-# Insert or update records based on query1
+# Insert records from query1
 cursor = postgres_conn.cursor()
 for index, row in df1.iterrows():
-    if check_login_exists(cursor, row['LOGIN_ID']):
-        update_existing_login(cursor, row)
-    else:
+    if not check_login_exists(cursor, row['LOGIN_ID']):
         insert_new_login(cursor, row)
 postgres_conn.commit()
 
-# Update existing records based on query2
+# Update records based on query2
 for index, row in df2.iterrows():
-    query = '''
-    SELECT user_name, hosp_name, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name, pswd
-    FROM medical.md_user_mst
-    WHERE login_name = %s
-    '''
-    cursor.execute(query, (row['LOGIN_ID'],))
-    existing_row = cursor.fetchone()
-    if existing_row:
-        existing_row = dict(zip([desc[0] for desc in cursor.description], existing_row))
-        if (
-            existing_row['hosp_name'] != row['HOSP_NAME'] or
-            existing_row['hosp_dist_id'] != row['HOSP_DIST_ID'] or
-            existing_row['hosp_dist_name'] != row['HOSP_DIST_NAME'] or
-            existing_row['hosp_mandal_id'] != row['HOSP_MANDAL_ID'] or
-            existing_row['hosp_mandal_name'] != row['HOSP_MANDAL'] or
-            existing_row['pswd'] != row['ENCRIPTED_PASSWORD']
-        ):
-            update_existing_login(cursor, row)
-postgres_conn.commit()
-
-# Update hosp_id based on query3
-for index, row in df3.iterrows():
-    query = "SELECT hosp_id FROM medical.md_user_mst WHERE login_name = %s"
-    cursor.execute(query, (row['LOGIN_ID'],))
-    existing_hosp_id = cursor.fetchone()
-    if existing_hosp_id and existing_hosp_id[0] != row['HOSP_ID']:
-        query = "UPDATE medical.md_user_mst SET hosp_id = %s WHERE login_name = %s"
-        cursor.execute(query, (row['HOSP_ID'], row['LOGIN_ID']))
-postgres_conn.commit()
-
-# Insert into medical.md_user_role_mapping
-for index, row in df1.iterrows():
-    query = "SELECT user_id FROM medical.md_user_mst WHERE login_name = %s"
-    cursor.execute(query, (row['LOGIN_ID'],))
-    user_id = cursor.fetchone()
-    if user_id:
-        query = "INSERT INTO medical.md_user_role_mapping (user_id, role_id) VALUES (%s, %s)"
-        cursor.execute(query, (user_id[0], 1))
+    if check_login_exists(cursor, row['LOGIN_ID']):
+        query = '''
+        SELECT user_name, hosp_name, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name, pswd
+        FROM medical.md_user_mst
+        WHERE login_name = %s
+        '''
+        cursor.execute(query, (row['LOGIN_ID'],))
+        existing_row = cursor.fetchone()
+        if existing_row:
+            existing_row = dict(zip([desc[0] for desc in cursor.description], existing_row))
+            if (
+                existing_row['hosp_name'] != row['HOSP_NAME'] or
+                existing_row['hosp_dist_id'] != row['HOSP_DIST_ID'] or
+                existing_row['hosp_dist_name'] != row['HOSP_DIST_NAME'] or
+                existing_row['hosp_mandal_id'] != row['HOSP_MANDAL_ID'] or
+                existing_row['hosp_mandal_name'] != row['HOSP_MANDAL'] or
+                existing_row['pswd'] != row['ENCRIPTED_PASSWORD']
+            ):
+                update_existing_login(cursor, row)
 postgres_conn.commit()
 
 # Close PostgreSQL cursor and connection
