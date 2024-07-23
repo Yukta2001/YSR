@@ -61,7 +61,7 @@ WHERE au.PRIMARY_FLAG = 'Y' AND au.active_yn = 'Y'
 AND anu.eff_end_dt is null
 AND au.crt_dt >= trunc(sysdate) - 1'''
 
-query2 = '''SELECT to_char(first_name||' '||last_name) as user_name,
+query2 = '''SELECT
 ah.hosp_id,ah.hosp_name,ah.dist_id hosp_dist_id,
 al.loc_name hosp_dist_name,
 aeh.mandal as hosp_mandal_id,
