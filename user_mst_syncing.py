@@ -77,11 +77,18 @@ WHERE au.PRIMARY_FLAG = 'Y'
 AND anu.eff_end_dt is null
 AND au.lst_upd_dt >= trunc(sysdate) - 1'''
 
+query3 = '''SELECT login_name, hosp_id FROM asrim_nwh_users 
+WHERE eff_end_dt is null 
+AND crt_dt >= trunc(sysdate) - 1'''
+
 cursor.execute(query1)
 df1 = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
 
 cursor.execute(query2)
 df2 = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
+
+cursor.execute(query3)
+df3 = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
 
 # Close Oracle cursor and connection
 cursor.close()
@@ -93,21 +100,21 @@ postgres_conn = create_postgres_connection()
 print("After creating PostgreSQL connection")
 
 # Fetch existing logins from medical.md_user_mst
-existing_login_ids = set()
+existing_logins = {}
 with postgres_conn.cursor() as cursor:
-    cursor.execute("SELECT login_name FROM medical.md_user_mst")
-    existing_login_ids.update(row[0] for row in cursor.fetchall())
+    cursor.execute("SELECT login_name, hosp_id FROM medical.md_user_mst")
+    existing_logins = {row[0]: row[1] for row in cursor.fetchall()}
 
 # Function to insert new login_id details
 def insert_new_login(cursor, row):
     query = '''
-    INSERT INTO medical.md_user_mst (user_name, login_name, pswd, hospital_name, hosp_id, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    INSERT INTO medical.md_user_mst (user_name, login_name, pswd, hospital_name, hosp_id, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name, is_active)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     '''
     cursor.execute(query, (
         row['USER_NAME'], row['LOGIN_ID'], row['ENCRIPTED_PASSWORD'], row['HOSP_NAME'],
         row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID'],
-        row['HOSPITAL_MANDAL']
+        row['HOSPITAL_MANDAL'], True if row['ACTIVE_YN'] == 'Y' else False
     ))
 
 # Function to update existing login_id details
@@ -115,13 +122,23 @@ def update_existing_login(cursor, row):
     query = '''
     UPDATE medical.md_user_mst
     SET user_name = %s, hosp_name = %s, hosp_dist_id = %s, hosp_dist_name = %s,
-        hosp_mandal_id = %s, hosp_mandal_name = %s, pswd = %s
+        hosp_mandal_id = %s, hosp_mandal_name = %s, pswd = %s, is_active = %s
     WHERE login_name = %s
     '''
     cursor.execute(query, (
         row['USER_NAME'], row['HOSP_NAME'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'],
-        row['HOSP_MANDAL_ID'], row['HOSPITAL_MANDAL'], row['ENCRIPTED_PASSWORD'], row['LOGIN_ID']
+        row['HOSP_MANDAL_ID'], row['HOSPITAL_MANDAL'], row['ENCRIPTED_PASSWORD'],
+        True if row['ACTIVE_YN'] == 'Y' else False, row['LOGIN_ID']
     ))
+
+# Function to update hospital ID for existing login_id
+def update_hospital_id(cursor, login_id, new_hosp_id):
+    query = '''
+    UPDATE medical.md_user_mst
+    SET hosp_id = %s
+    WHERE login_name = %s
+    '''
+    cursor.execute(query, (new_hosp_id, login_id))
 
 # Function to insert into medical.md_user_role_mapping
 def insert_user_role_mapping(cursor, login_id):
@@ -134,7 +151,7 @@ def insert_user_role_mapping(cursor, login_id):
 # Insert records from query1
 with postgres_conn.cursor() as cursor:
     for index, row in df1.iterrows():
-        if row['LOGIN_ID'] not in existing_login_ids:
+        if row['LOGIN_ID'] not in existing_logins:
             insert_new_login(cursor, row)
             insert_user_role_mapping(cursor, row['LOGIN_ID'])
     postgres_conn.commit()
@@ -143,6 +160,13 @@ with postgres_conn.cursor() as cursor:
 with postgres_conn.cursor() as cursor:
     for index, row in df2.iterrows():
         update_existing_login(cursor, row)
+    postgres_conn.commit()
+
+# Update hospital ID if changed based on query3
+with postgres_conn.cursor() as cursor:
+    for index, row in df3.iterrows():
+        if row['LOGIN_NAME'] in existing_logins and row['HOSP_ID'] != existing_logins[row['LOGIN_NAME']]:
+            update_hospital_id(cursor, row['LOGIN_NAME'], row['HOSP_ID'])
     postgres_conn.commit()
 
 # Close PostgreSQL connection
