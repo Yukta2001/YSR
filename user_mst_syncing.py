@@ -60,7 +60,8 @@ LEFT join ASRIT_EMPNL_HOSPINFO AEH on AH.HOSP_EMPNL_REF_NUM = AEH.HOSPINFO_ID
 WHERE au.PRIMARY_FLAG = 'Y' AND au.active_yn = 'Y'
 AND anu.eff_end_dt is null
 AND ah.hosp_type = 'G'
-AND ah.govt_hosp_type = 'DSH' '''
+AND ah.govt_hosp_type = 'DSH'
+'''
 
 query2 = '''SELECT
 ah.hosp_id,ah.hosp_name,ah.dist_id hosp_dist_id,
@@ -115,11 +116,12 @@ with postgres_conn.cursor() as cursor:
 def insert_new_login(cursor, row):
     query = '''
     INSERT INTO medical.md_user_mst (user_name, login_name, pswd, hospital_name, hosp_id, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     '''
     cursor.execute(query, (
         row['USER_NAME'], row['LOGIN_ID'], row['ENCRIPTED_PASSWORD'], row['HOSP_NAME'],
-        row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID']
+        row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID'],
+        row['HOSPITAL_MANDAL']
     ))
 
 # Function to update existing login_id details
@@ -176,14 +178,3 @@ with postgres_conn.cursor() as cursor:
 
 # Close PostgreSQL connection
 postgres_conn.close()
-
-
-
-
-After creating PostgreSQL connection
-Traceback (most recent call last):
-  File "c:\Users\mehulidas\OneDrive - KPMG\Desktop\python_practice\YSR\__pycache__\table_syncing\user_mst_sync_IV.py", line 160, in <module>
-    insert_new_login(cursor, row)
-  File "c:\Users\mehulidas\OneDrive - KPMG\Desktop\python_practice\YSR\__pycache__\table_syncing\user_mst_sync_IV.py", line 120, in insert_new_login
-    cursor.execute(query, (
-IndexError: tuple index out of range
