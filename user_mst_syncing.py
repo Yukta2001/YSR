@@ -59,7 +59,8 @@ LEFT JOIN asrim_locations al ON ah.dist_id=al.loc_id
 LEFT join ASRIT_EMPNL_HOSPINFO AEH on AH.HOSP_EMPNL_REF_NUM = AEH.HOSPINFO_ID
 WHERE au.PRIMARY_FLAG = 'Y' AND au.active_yn = 'Y'
 AND anu.eff_end_dt is null
-AND au.crt_dt >= trunc(sysdate) - 1'''
+AND ah.hosp_type = 'G'
+AND ah.govt_hosp_type = 'DSH' '''
 
 query2 = '''SELECT
 ah.hosp_id,ah.hosp_name,ah.dist_id hosp_dist_id,
@@ -75,11 +76,16 @@ LEFT JOIN asrim_locations al ON ah.dist_id=al.loc_id
 LEFT join ASRIT_EMPNL_HOSPINFO AEH on AH.HOSP_EMPNL_REF_NUM = AEH.HOSPINFO_ID
 WHERE au.PRIMARY_FLAG = 'Y' 
 AND anu.eff_end_dt is null
+AND ah.hosp_type = 'G'
+AND ah.govt_hosp_type = 'DSH'
 AND au.lst_upd_dt >= trunc(sysdate) - 1'''
 
-query3 = '''SELECT login_name, hosp_id FROM asrim_nwh_users 
-WHERE eff_end_dt is null 
-AND crt_dt >= trunc(sysdate) - 1'''
+query3 = '''SELECT CASE WHEN NEW_EMP_CODE IS NOT NULL THEN new_emp_code
+ELSE login_name END as login_name,hosp_id
+FROM asrim_nwh_users anu
+JOIN asrim_users au ON anu.user_id = au.user_id
+WHERE EFF_END_DT IS NULL
+AND anu.crt_dt >= trunc(sysdate) - 1'''
 
 cursor.execute(query1)
 df1 = pd.DataFrame(cursor.fetchall(), columns=[col[0] for col in cursor.description])
@@ -108,25 +114,24 @@ with postgres_conn.cursor() as cursor:
 # Function to insert new login_id details
 def insert_new_login(cursor, row):
     query = '''
-    INSERT INTO medical.md_user_mst (user_name, login_name, pswd, hospital_name, hosp_id, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name, is_active)
+    INSERT INTO medical.md_user_mst (user_name, login_name, pswd, hospital_name, hosp_id, hosp_dist_id, hosp_dist_name, hosp_mandal_id, hosp_mandal_name)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     '''
     cursor.execute(query, (
         row['USER_NAME'], row['LOGIN_ID'], row['ENCRIPTED_PASSWORD'], row['HOSP_NAME'],
-        row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID'],
-        row['HOSPITAL_MANDAL'], True if row['ACTIVE_YN'] == 'Y' else False
+        row['HOSP_ID'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'], row['HOSP_MANDAL_ID']
     ))
 
 # Function to update existing login_id details
 def update_existing_login(cursor, row):
     query = '''
     UPDATE medical.md_user_mst
-    SET user_name = %s, hosp_name = %s, hosp_dist_id = %s, hosp_dist_name = %s,
+    SET hospital_name = %s, hosp_dist_id = %s, hosp_dist_name = %s,
         hosp_mandal_id = %s, hosp_mandal_name = %s, pswd = %s, is_active = %s
     WHERE login_name = %s
     '''
     cursor.execute(query, (
-        row['USER_NAME'], row['HOSP_NAME'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'],
+        row['HOSP_NAME'], row['HOSP_DIST_ID'], row['HOSP_DIST_NAME'],
         row['HOSP_MANDAL_ID'], row['HOSPITAL_MANDAL'], row['ENCRIPTED_PASSWORD'],
         True if row['ACTIVE_YN'] == 'Y' else False, row['LOGIN_ID']
     ))
@@ -172,4 +177,13 @@ with postgres_conn.cursor() as cursor:
 # Close PostgreSQL connection
 postgres_conn.close()
 
-print("All operations completed successfully")
+
+
+
+After creating PostgreSQL connection
+Traceback (most recent call last):
+  File "c:\Users\mehulidas\OneDrive - KPMG\Desktop\python_practice\YSR\__pycache__\table_syncing\user_mst_sync_IV.py", line 160, in <module>
+    insert_new_login(cursor, row)
+  File "c:\Users\mehulidas\OneDrive - KPMG\Desktop\python_practice\YSR\__pycache__\table_syncing\user_mst_sync_IV.py", line 120, in insert_new_login
+    cursor.execute(query, (
+IndexError: tuple index out of range
