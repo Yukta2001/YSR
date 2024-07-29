@@ -1,0 +1,184 @@
+import streamlit as st
+from PIL import Image
+import base64
+import pandas as pd
+from datetime import date
+
+# CSS styles
+styles = """
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+.header-container {
+    display: flex;
+    align-items: center;
+    background-color: #034ea2;
+    padding: 10px;
+    color: white;
+    position: relative;
+    height: 120px;  /* Adjusted height for two headings */
+}
+.logo-box {
+    background-color: white;
+    border: 2px solid #034ea2;
+    padding: 5px;
+    margin-right: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.logo {
+    width: 80px;
+    height: auto;
+}
+.header-text {
+    flex: 1;
+    text-align: center;
+}
+.header-text h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 400;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+.header-text h2 {
+    margin: 0;
+    font-size: 16px;  /* Smaller font size for the second heading */
+    font-weight: 300;
+    font-family: Arial, sans-serif;
+    color: white;
+}
+.form-container {
+    margin-top: 140px;  /* Adjusted margin to accommodate header height */
+    width: 100%;
+}
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+.stButton > button {
+    background-color: #034ea2;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s, transform 0.2s;
+    margin: 0 10px;
+}
+.stButton > button:hover {
+    background-color: #023a7e;
+    transform: scale(1.05);
+}
+.dataframe thead th {
+    font-weight: bold;
+    background-color: #034ea2;
+    color: white;
+}
+.dataframe tbody tr {
+    background-color: #f9f9f9;
+}
+"""
+
+# Path to logo and CSV file
+logo_path = '/Users/mehulidas/Documents/Python/kpmg_logo.png'
+csv_file_path = '/Users/mehulidas/Documents/Python/employee_details.csv'
+
+# Convert logo to base64
+with open(logo_path, "rb") as image_file:
+    logo_base64 = base64.b64encode(image_file.read()).decode()
+
+# Load CSS
+st.markdown(f'<style>{styles}</style>', unsafe_allow_html=True)
+
+# Header
+st.markdown(
+    f"""
+    <div class="header-container">
+        <div class="logo-box">
+            <img src="data:image/png;base64,{logo_base64}" class="logo"/>
+        </div>
+        <div class="header-text">
+            <h1>Pioneering Citizen Data Integrity</h1>
+            <h2>using Advanced De-duplication and Golden Record framework</h2>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# Initialize session state for navigation
+if 'page' not in st.session_state:
+    st.session_state['page'] = 'form'
+if 'user_details' not in st.session_state:
+    st.session_state['user_details'] = {}
+
+class UserDetails:
+    def __init__(self, file_path):
+        self.df = pd.read_csv(file_path)
+
+    def get_user_details(self, aadhar_number):
+        user_df = self.df[self.df['Aadhar Number'] == aadhar_number]
+        if not user_df.empty:
+            return user_df.to_dict('records')
+        else:
+            return None
+
+user_details_instance = UserDetails(csv_file_path)
+
+def render_form():
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    st.session_state.aadhar_no = st.text_input("Aadhar No", value=st.session_state.get('aadhar_no', ''))
+    st.session_state.name = st.text_input("Name", value=st.session_state.get('name', ''))
+
+    gender_options = ["", "Male", "Female", "Trans"]
+    gender_selection = st.selectbox("Gender", gender_options)
+    st.session_state.gender = gender_selection if gender_selection else None
+
+    st.session_state.dob = st.date_input("Date of Birth", value=st.session_state.get('dob', None), min_value=date(1900, 1, 1), max_value=date(2014, 12, 31))
+    st.session_state.guardian_name = st.text_input("Father's/Husband's Name", value=st.session_state.get('guardian_name', ''))
+    st.session_state.mobile_no = st.text_input("Mobile No", value=st.session_state.get('mobile_no', ''), max_chars=10)
+    st.session_state.address = st.text_area("Address", value=st.session_state.get('address', ''))
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if st.button("Search"):
+        search_user()
+
+def search_user():
+    if st.session_state.aadhar_no:
+        user_details = user_details_instance.get_user_details(st.session_state.aadhar_no)
+        if user_details:
+            st.session_state['user_details'] = user_details
+            st.session_state['page'] = 'details'
+            st.experimental_rerun()
+        else:
+            st.write("No user found with the given Aadhar number.")
+    else:
+        st.write("Please enter a valid Aadhar number.")
+
+def render_details():
+    st.write("User Details:")
+
+    if st.session_state['user_details']:
+        # Convert user details to DataFrame
+        details_df = pd.DataFrame(st.session_state['user_details'])
+
+        # Display the DataFrame as a styled table
+        st.markdown(details_df.to_html(index=False, classes='dataframe'), unsafe_allow_html=True)
+    else:
+        st.write("No details to display.")
+
+    if st.button("Go Back"):
+        st.session_state['page'] = 'form'
+        st.experimental_rerun()
+
+# Page navigation logic
+if st.session_state['page'] == 'form':
+    render_form()
+elif st.session_state['page'] == 'details':
+    render_details()
