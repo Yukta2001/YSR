@@ -82,3 +82,25 @@ BEGIN
         END;
     END LOOP;
 END;
+=================================================================================
+
+#!/bin/bash
+
+ORACLE_SID=your_oracle_sid   # Replace with your Oracle SID
+ORACLE_HOME=/path/to/oracle_home   # Replace with your Oracle Home path
+PATH=$ORACLE_HOME/bin:$PATH
+
+export ORACLE_SID ORACLE_HOME PATH
+
+sqlplus -s <<EOF
+your_username/your_password@your_database
+BEGIN
+    run_move_aadhar_auth_audit;
+END;
+/
+EXIT;
+EOF
+====================================================================================
+chmod +x /path/to/your_script.sh
+====================================================================================
+0 2 * * * /home/user/run_audit.sh
