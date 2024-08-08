@@ -1,0 +1,90 @@
+DECLARE
+batch_qnty NUMBER := 500000;
+
+CURSOR arch IS
+    SELECT REF_ID,TRANS_ID,DPID,RDSID,RDSVER,DC,
+    MI,MC,SRNO,TS,SYSID,LOCKING,CI,SKEY,PIDTYPE,
+    HMAC,ERRCODE,ERRINFO,FCOUNT,FTYPE,ICOUNT,
+    ITYPE,PCOUNT,PTYPE,NMPOINTS,QSCORE,REQ_SENT_DT,
+    REQ_RECEIVED_DT,USER_CONCENT,HASH_VALUE,UPD_DT,
+    UPD_USR,CRT_DT,CRT_USR,AUTHDATE,AUTHERRCODE,
+    AUTHRESON,AUTHTRANSCODE,AUTHSTATUS
+--    ,PIDDATA  
+    FROM aadhar_auth_audit
+    WHERE crt_dt < sysdate - 15;
+--ref_id < (73001941 + 11000 + 7230000);
+--    crt_dt < sysdate - 15;
+
+TYPE s_table IS RECORD (
+        REF_ID aadhar_auth_audit.REF_ID%TYPE,
+        TRANS_ID aadhar_auth_audit.TRANS_ID%TYPE,
+        DPID aadhar_auth_audit.DPID%TYPE,
+        RDSID aadhar_auth_audit.RDSID%TYPE,
+        RDSVER aadhar_auth_audit.RDSVER%TYPE,
+        DC aadhar_auth_audit.DC%TYPE,
+        MI aadhar_auth_audit.MI%TYPE,
+        MC aadhar_auth_audit.MC%TYPE,
+        SRNO aadhar_auth_audit.SRNO%TYPE,
+        TS aadhar_auth_audit.TS%TYPE,
+        SYSID aadhar_auth_audit.SYSID%TYPE,
+        LOCKING aadhar_auth_audit.LOCKING%TYPE,
+        CI aadhar_auth_audit.CI%TYPE,
+        SKEY aadhar_auth_audit.SKEY%TYPE,
+        PIDTYPE aadhar_auth_audit.PIDTYPE%TYPE,
+        HMAC aadhar_auth_audit.HMAC%TYPE,
+        ERRCODE aadhar_auth_audit.ERRCODE%TYPE,
+        ERRINFO aadhar_auth_audit.ERRINFO%TYPE,
+        FCOUNT aadhar_auth_audit.FCOUNT%TYPE,
+        FTYPE aadhar_auth_audit.FTYPE%TYPE,
+        ICOUNT aadhar_auth_audit.ICOUNT%TYPE,
+        ITYPE aadhar_auth_audit.ITYPE%TYPE,
+        PCOUNT aadhar_auth_audit.PCOUNT%TYPE,
+        PTYPE aadhar_auth_audit.PTYPE%TYPE,
+        NMPOINTS aadhar_auth_audit.NMPOINTS%TYPE,
+        QSCORE aadhar_auth_audit.QSCORE%TYPE,
+        REQ_SENT_DT aadhar_auth_audit.REQ_SENT_DT%TYPE,
+        REQ_RECEIVED_DT aadhar_auth_audit.REQ_RECEIVED_DT%TYPE,
+        USER_CONCENT aadhar_auth_audit.USER_CONCENT%TYPE,
+        HASH_VALUE aadhar_auth_audit.HASH_VALUE%TYPE,
+        UPD_DT aadhar_auth_audit.UPD_DT%TYPE,
+        UPD_USR aadhar_auth_audit.UPD_USR%TYPE,
+        CRT_DT aadhar_auth_audit.CRT_DT%TYPE,
+        CRT_USR aadhar_auth_audit.CRT_USR%TYPE,
+        AUTHDATE aadhar_auth_audit.AUTHDATE%TYPE,
+        AUTHERRCODE aadhar_auth_audit.AUTHERRCODE%TYPE,
+        AUTHRESON aadhar_auth_audit.AUTHRESON%TYPE,
+        AUTHTRANSCODE aadhar_auth_audit.AUTHTRANSCODE%TYPE,
+        AUTHSTATUS aadhar_auth_audit.AUTHSTATUS%TYPE
+--        PIDDATA aadhar_auth_audit.PIDDATA%TYPE
+    );
+    TYPE s_table_array IS TABLE OF s_table;
+    l_batch s_table_array;
+
+BEGIN
+    LOOP
+        OPEN arch;
+        FETCH arch BULK COLLECT INTO l_batch LIMIT batch_qnty;
+        CLOSE arch;
+
+        IF l_batch.COUNT = 0 THEN
+            EXIT;
+        END IF;
+    BEGIN
+        FORALL i IN 1..l_batch.COUNT
+            INSERT INTO  aadhar_auth_audit_arch(REF_ID,TRANS_ID,DPID,RDSID,RDSVER,DC,MI,MC,SRNO,TS,SYSID,LOCKING,CI,SKEY,PIDTYPE,HMAC,ERRCODE,ERRINFO,FCOUNT,FTYPE,ICOUNT,ITYPE,PCOUNT,PTYPE,NMPOINTS,QSCORE,REQ_SENT_DT,REQ_RECEIVED_DT,USER_CONCENT,HASH_VALUE,UPD_DT,UPD_USR,CRT_DT,CRT_USR,AUTHDATE,AUTHERRCODE,AUTHRESON,AUTHTRANSCODE,AUTHSTATUS)
+            VALUES (l_batch(i).REF_ID,l_batch(i).TRANS_ID,l_batch(i).DPID,l_batch(i).RDSID,l_batch(i).RDSVER,l_batch(i).DC,l_batch(i).MI,l_batch(i).MC,l_batch(i).SRNO,l_batch(i).TS,l_batch(i).SYSID,l_batch(i).LOCKING,l_batch(i).CI,l_batch(i).SKEY,l_batch(i).PIDTYPE,l_batch(i).HMAC,l_batch(i).ERRCODE,l_batch(i).ERRINFO,l_batch(i).FCOUNT,l_batch(i).FTYPE,l_batch(i).ICOUNT,l_batch(i).ITYPE,l_batch(i).PCOUNT,l_batch(i).PTYPE,l_batch(i).NMPOINTS,l_batch(i).QSCORE,l_batch(i).REQ_SENT_DT,l_batch(i).REQ_RECEIVED_DT,l_batch(i).USER_CONCENT,l_batch(i).HASH_VALUE,l_batch(i).UPD_DT,l_batch(i).UPD_USR,l_batch(i).CRT_DT,l_batch(i).CRT_USR,l_batch(i).AUTHDATE,l_batch(i).AUTHERRCODE,l_batch(i).AUTHRESON,l_batch(i).AUTHTRANSCODE,l_batch(i).AUTHSTATUS);
+
+            
+            FORALL i IN 1..l_batch.COUNT
+                DELETE FROM aadhar_auth_audit
+                WHERE ref_id = l_batch(i).ref_id;
+
+            COMMIT;
+            
+            EXCEPTION
+            WHEN OTHERS THEN
+                ROLLBACK;
+                DBMS_OUTPUT.PUT_LINE('Error occurred: ' || SQLERRM);
+        END;
+    END LOOP;
+END;
