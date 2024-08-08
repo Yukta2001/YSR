@@ -7,7 +7,7 @@ CREATE OR REPLACE PROCEDURE move_aadhar_auth_audit IS
                REQ_RECEIVED_DT, USER_CONCENT, HASH_VALUE, UPD_DT, UPD_USR, CRT_DT, CRT_USR, AUTHDATE, AUTHERRCODE, 
                AUTHRESON, AUTHTRANSCODE, AUTHSTATUS
         FROM aadhar_auth_audit
-        WHERE crt_dt < SYSDATE - 15;
+        WHERE crt_dt < trunc(SYSDATE) - 7;
 
     TYPE s_table IS RECORD (
         REF_ID aadhar_auth_audit.REF_ID%TYPE,
