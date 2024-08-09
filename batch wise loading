@@ -84,23 +84,21 @@ BEGIN
 END;
 =================================================================================
 
-#!/bin/bash
-
-ORACLE_SID=your_oracle_sid   # Replace with your Oracle SID
-ORACLE_HOME=/path/to/oracle_home   # Replace with your Oracle Home path
+ORACLE_SID=pysrasdb
+ORACLE_HOME=/oracle/app/product/EE/12.2.0/db_1
 PATH=$ORACLE_HOME/bin:$PATH
 
 export ORACLE_SID ORACLE_HOME PATH
 
 sqlplus -s <<EOF
-your_username/your_password@your_database
+argsri_final/ntrvs#123
 BEGIN
-    run_move_aadhar_auth_audit;
+   move_aadhar_auth_audit;
 END;
 /
 EXIT;
 EOF
 ====================================================================================
-chmod +x /path/to/your_script.sh
+chmod +x /path/to/data_archieving.sh
 ====================================================================================
-0 2 * * * /home/user/run_audit.sh
+0 2 * * * /home/user/data_archieving.sh
